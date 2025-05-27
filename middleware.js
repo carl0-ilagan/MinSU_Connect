@@ -8,25 +8,29 @@ export function middleware(request) {
 
   // If it's the root path, redirect to welcome
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/welcome', request.url))
+    const response = NextResponse.redirect(new URL('/welcome', request.url))
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   }
 
   // If it's a public route, allow access
   if (publicRoutes.some(route => pathname.startsWith(route))) {
-    // For welcome page, ensure it's not redirected
-    if (pathname === '/welcome') {
-      const response = NextResponse.next()
-      // Add cache control headers to prevent caching
-      response.headers.set('Cache-Control', 'no-store, must-revalidate')
-      response.headers.set('Pragma', 'no-cache')
-      response.headers.set('Expires', '0')
-      return response
-    }
-    return NextResponse.next()
+    const response = NextResponse.next()
+    // Add cache control headers to prevent caching
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   }
 
   // For all other routes, continue with normal behavior
-  return NextResponse.next()
+  const response = NextResponse.next()
+  response.headers.set('Cache-Control', 'no-store, must-revalidate')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+  return response
 }
 
 // Configure which paths the middleware should run on

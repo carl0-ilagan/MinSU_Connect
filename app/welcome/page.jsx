@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Menu, X, Check, Users, ArrowUp, GraduationCap, BookOpen, Building2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 export default function WelcomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -16,6 +16,7 @@ export default function WelcomePage() {
   const [showScrollTop, setShowScrollTop] = useState(false)
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const hasRedirected = useRef(false)
   const isInitialMount = useRef(true)
 
@@ -27,13 +28,14 @@ export default function WelcomePage() {
 
   // Handle initial load and auth state
   useEffect(() => {
+    // Skip the first render
     if (isInitialMount.current) {
       isInitialMount.current = false
       return
     }
 
     // Only redirect if we're not loading and user is authenticated
-    if (!loading && user && !hasRedirected.current) {
+    if (!loading && user && !hasRedirected.current && pathname === '/welcome') {
       hasRedirected.current = true
       // Add a small delay before redirect
       const timeoutId = setTimeout(() => {
@@ -41,7 +43,7 @@ export default function WelcomePage() {
       }, 100)
       return () => clearTimeout(timeoutId)
     }
-  }, [loading, user, router])
+  }, [loading, user, router, pathname])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)
