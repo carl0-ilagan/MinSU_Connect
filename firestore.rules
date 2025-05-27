@@ -31,10 +31,33 @@ service cloud.firestore {
     }
 
     function isReactionOrCommentUpdate() {
-      // Only allow updating reactions, likedBy, likes, commentList, comments, shares, shareList, lastCommentAt
+      // Allow updating reactions, likedBy, likes, commentList, comments, shares, shareList, lastCommentAt, and repostedBy
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        "reactions", "likedBy", "likes", "commentList", "comments", "shares", "shareList", "lastCommentAt"
+        "reactions", "likedBy", "likes", "commentList", "comments", "shares", "shareList", "lastCommentAt", "repostedBy", "repostCount"
       ]);
+    }
+
+    // Helper function to check video size
+    function isValidVideoSize() {
+      let maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      return request.resource.data.size <= maxSize;
+    }
+
+    // Helper function to check if file is a video
+    function isVideo() {
+      let videoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
+      return request.resource.data.contentType in videoTypes;
+    }
+
+    // Helper function to validate post data
+    function isValidPostData() {
+      let post = request.resource.data;
+      return post.size() <= 1048576 && // 1MB max for post data
+             post.userId == request.auth.uid &&
+             post.createdAt is timestamp &&
+             post.likes is number &&
+             post.comments is number &&
+             post.status in ['pending', 'approved', 'rejected'];
     }
 
     // Users collection
@@ -48,7 +71,10 @@ service cloud.firestore {
     // Posts collection
     match /posts/{postId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        isValidPostData() && 
+        (!request.resource.data.containsKey('image') || request.resource.data.image.size() <= 1048576) && // 1MB max for image
+        (!request.resource.data.containsKey('video') || request.resource.data.video.size() <= 52428800); // 50MB max for video
       allow update: if (
         isOwner(resource.data.userId) || 
         isAdmin() ||
@@ -60,7 +86,9 @@ service cloud.firestore {
     // Comments collection
     match /comments/{commentId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        (!request.resource.data.containsKey('image') || request.resource.data.image.size() <= 1048576) && // 1MB max for image
+        (!request.resource.data.containsKey('video') || request.resource.data.video.size() <= 52428800); // 50MB max for video
       allow update: if isOwner(resource.data.userId) || isAdmin();
       allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
@@ -119,7 +147,8 @@ service cloud.firestore {
     // Reports collection
     match /reports/{reportId} {
       allow create: if isAuthenticated() && 
-        request.resource.data.reporterId == request.auth.uid;
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.size() <= 1048576; // 1MB max for report data
       allow read, update, delete: if isAdmin();
     }
 
