@@ -192,23 +192,16 @@ export function AuthProvider({ children }) {
       // 2. Current route is not public AND
       // 3. Not already on the login page
       if (!user && !isPublicRoute && pathname !== '/login') {
-        // Add a small delay to prevent immediate redirect
-        const timeoutId = setTimeout(() => {
-          // Store the intended destination
-          sessionStorage.setItem('redirectAfterLogin', pathname)
-          router.push('/login')
-        }, 100)
-        return () => clearTimeout(timeoutId)
+        // Store the intended destination
+        sessionStorage.setItem('redirectAfterLogin', pathname)
+        router.push('/login')
       }
 
       // If user is authenticated and on a public route (except welcome),
       // redirect to appropriate dashboard
       if (user && isPublicRoute && pathname !== '/welcome') {
-        const timeoutId = setTimeout(() => {
-          const destination = isAdmin ? '/admin/dashboard' : '/user'
-          router.push(destination)
-        }, 100)
-        return () => clearTimeout(timeoutId)
+        const destination = isAdmin ? '/admin/dashboard' : '/user'
+        router.push(destination)
       }
     }
   }, [loading, user, pathname, router, isAdmin])

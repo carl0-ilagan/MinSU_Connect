@@ -39,15 +39,14 @@ export default function WelcomePage() {
   // Handle authentication state
   useEffect(() => {
     if (!loading && user && !hasRedirected.current) {
-      hasRedirected.current = true
-      const destination = isAdmin ? '/admin/dashboard' : '/user'
-      // Add a small delay before redirect
-      const timeoutId = setTimeout(() => {
+      // Only redirect if not already on welcome page
+      if (pathname !== '/welcome') {
+        hasRedirected.current = true
+        const destination = isAdmin ? '/admin/dashboard' : '/user'
         router.push(destination)
-      }, 100)
-      return () => clearTimeout(timeoutId)
+      }
     }
-  }, [loading, user, router, isAdmin])
+  }, [loading, user, router, isAdmin, pathname])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)

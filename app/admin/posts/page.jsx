@@ -124,12 +124,14 @@ const StatsModal = ({ post, isOpen, onClose }) => {
 
 export default function PostModerationPage() {
   const [posts, setPosts] = useState({
+    all: [],
     pending: [],
     approved: [],
     declined: [],
     reviewed: [],
   })
   const [allPosts, setAllPosts] = useState({
+    all: [],
     pending: [],
     approved: [],
     declined: [],
@@ -198,12 +200,16 @@ export default function PostModerationPage() {
 
     unsubscribes.push(allUnsubscribe)
 
-    // Pending posts listener
-    const pendingRef = collection(db, "posts")
-    const pendingQuery = query(pendingRef, where("status", "==", "pending"), orderBy("createdAt", "desc"))
+    // Reviewed posts listener (approved + declined)
+    const reviewedRef = collection(db, "posts")
+    const reviewedQuery = query(
+      reviewedRef,
+      where("status", "in", ["approved", "declined"]),
+      orderBy("createdAt", "desc")
+    )
 
-    const pendingUnsubscribe = onSnapshot(pendingQuery, (snapshot) => {
-      const pendingPosts = snapshot.docs.map((doc) => {
+    const reviewedUnsubscribe = onSnapshot(reviewedQuery, (snapshot) => {
+      const reviewedPosts = snapshot.docs.map((doc) => {
         const data = doc.data()
         return {
           id: doc.id,
@@ -223,79 +229,25 @@ export default function PostModerationPage() {
         }
       })
 
-      setAllPosts((prev) => ({ ...prev, pending: pendingPosts }))
-      setIsLoading(false)
+      setAllPosts((prev) => ({ ...prev, reviewed: reviewedPosts }))
     })
 
-    unsubscribes.push(pendingUnsubscribe)
-
-    // Approved posts listener
-    const approvedRef = collection(db, "posts")
-    const approvedQuery = query(approvedRef, where("status", "==", "approved"), orderBy("createdAt", "desc"))
-
-    const approvedUnsubscribe = onSnapshot(approvedQuery, (snapshot) => {
-      const approvedPosts = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          user: {
-            id: data.userId,
-            name: data.userName || "Unknown User",
-            avatar: data.userAvatar || data.profileImage || data.photoURL || "/diverse-woman-portrait.png",
-          },
-          content: data.content,
-          image: data.image,
-          timestamp: data.createdAt?.toDate() || new Date(),
-          status: data.status,
-          declineReason: data.feedback,
-          likes: data.likes || 0,
-          reactions: data.reactions || {},
-          commentList: data.commentList || [],
-        }
-      })
-
-      setAllPosts((prev) => ({ ...prev, approved: approvedPosts }))
-    })
-
-    unsubscribes.push(approvedUnsubscribe)
-
-    // Declined posts listener
-    const declinedRef = collection(db, "posts")
-    const declinedQuery = query(declinedRef, where("status", "==", "declined"), orderBy("createdAt", "desc"))
-
-    const declinedUnsubscribe = onSnapshot(declinedQuery, (snapshot) => {
-      const declinedPosts = snapshot.docs.map((doc) => {
-        const data = doc.data()
-        return {
-          id: doc.id,
-          user: {
-            id: data.userId,
-            name: data.userName || "Unknown User",
-            avatar: data.userAvatar || data.profileImage || data.photoURL || "/diverse-woman-portrait.png",
-          },
-          content: data.content,
-          image: data.image,
-          timestamp: data.createdAt?.toDate() || new Date(),
-          status: data.status,
-          declineReason: data.feedback,
-          likes: data.likes || 0,
-          reactions: data.reactions || {},
-          commentList: data.commentList || [],
-        }
-      })
-
-      setAllPosts((prev) => ({ ...prev, declined: declinedPosts }))
-    })
-
-    unsubscribes.push(declinedUnsubscribe)
+    unsubscribes.push(reviewedUnsubscribe)
 
     return unsubscribes
   }
 
   // Update paginated posts
   const updatePaginatedPosts = () => {
-    // Get the correct posts array based on selectedStatus
-    const statusPosts = allPosts[selectedStatus] || []
+    let statusPosts = []
+    
+    if (selectedStatus === "all") {
+      statusPosts = allPosts.all || []
+    } else if (selectedStatus === "reviewed") {
+      statusPosts = allPosts.reviewed || []
+    } else {
+      statusPosts = allPosts[selectedStatus] || []
+    }
     
     // Filter posts based on search query
     const filteredPosts = statusPosts.filter(
@@ -303,6 +255,14 @@ export default function PostModerationPage() {
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.user.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
+
+    // Calculate total pages
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
+    
+    // Ensure current page is valid
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    }
 
     // Apply pagination
     const startIndex = (currentPage - 1) * postsPerPage
@@ -347,6 +307,11 @@ export default function PostModerationPage() {
 
   // Filter posts based on selected status
   const getFilteredPostsByStatus = () => {
+    if (selectedStatus === "all") {
+      return allPosts.all || []
+    } else if (selectedStatus === "reviewed") {
+      return allPosts.reviewed || []
+    }
     return allPosts[selectedStatus] || []
   }
 
@@ -471,7 +436,7 @@ export default function PostModerationPage() {
             <div>
               <CardTitle className="text-xl font-bold">Content Moderation</CardTitle>
               <CardDescription>
-                {isLoading ? "Loading..." : `${posts[selectedStatus].length} posts shown (${getFilteredPostsByStatus().length} total)`}
+                {isLoading ? "Loading..." : `${posts[selectedStatus]?.length || 0} posts shown (${getFilteredPostsByStatus().length} total)`}
               </CardDescription>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto items-stretch md:items-center">
@@ -487,9 +452,11 @@ export default function PostModerationPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Posts ({allPosts.all.length})</SelectItem>
                   <SelectItem value="pending">Pending ({allPosts.pending.length})</SelectItem>
                   <SelectItem value="approved">Approved ({allPosts.approved.length})</SelectItem>
                   <SelectItem value="declined">Declined ({allPosts.declined.length})</SelectItem>
+                  <SelectItem value="reviewed">Reviewed ({allPosts.reviewed.length})</SelectItem>
                 </SelectContent>
               </Select>
               <div className="relative flex-1">
@@ -516,7 +483,7 @@ export default function PostModerationPage() {
                 <PostModerationSkeleton key={i} />
               ))}
             </div>
-          ) : posts[selectedStatus].length > 0 ? (
+          ) : posts[selectedStatus]?.length > 0 ? (
             <div className="space-y-4">
               {posts[selectedStatus].map((post) => (
                 <div

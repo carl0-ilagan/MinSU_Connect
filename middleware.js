@@ -8,7 +8,12 @@ export function middleware(request) {
 
   // If it's the root path, redirect to welcome
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/welcome', request.url))
+    const response = NextResponse.redirect(new URL('/welcome', request.url))
+    // Add cache control headers
+    response.headers.set('Cache-Control', 'no-store, must-revalidate, max-age=0')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   }
 
   // For public routes, allow access and add cache control headers
@@ -38,7 +43,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - public (public files)
      */
     '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
