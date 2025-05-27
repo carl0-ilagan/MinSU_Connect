@@ -176,12 +176,22 @@ export function AuthProvider({ children }) {
   // Handle protected routes
   useEffect(() => {
     if (!loading) {
-      const isPublicRoute = pathname?.includes('/login') || 
-                          pathname?.includes('/register') || 
-                          pathname?.includes('/forgot-password') ||
-                          pathname?.includes('/welcome')
+      // Define public routes that don't require authentication
+      const publicRoutes = [
+        '/welcome',
+        '/login',
+        '/register',
+        '/forgot-password'
+      ]
       
-      if (!user && !isPublicRoute) {
+      // Check if current path is a public route
+      const isPublicRoute = publicRoutes.some(route => pathname?.startsWith(route))
+      
+      // Only redirect to login if:
+      // 1. User is not authenticated AND
+      // 2. Current route is not public AND
+      // 3. Not already on the login page
+      if (!user && !isPublicRoute && pathname !== '/login') {
         router.push('/login')
       }
     }
