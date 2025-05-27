@@ -191,8 +191,13 @@ export function AuthProvider({ children }) {
       // 1. User is not authenticated AND
       // 2. Current route is not public AND
       // 3. Not already on the login page
-      if (!user && !isPublicRoute && pathname !== '/login') {
-        router.push('/login')
+      // 4. Not on the welcome page
+      if (!user && !isPublicRoute && pathname !== '/login' && pathname !== '/welcome') {
+        // Add a small delay to prevent immediate redirect
+        const timeoutId = setTimeout(() => {
+          router.push('/login')
+        }, 100)
+        return () => clearTimeout(timeoutId)
       }
     }
   }, [loading, user, pathname, router])

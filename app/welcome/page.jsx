@@ -7,17 +7,27 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Menu, X, Check, Users, ArrowUp, GraduationCap, BookOpen, Building2 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function WelcomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("home")
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const { user } = useAuth()
+  const hasRedirected = useRef(false)
 
   // Create refs for each section
   const homeRef = useRef(null)
   const aboutRef = useRef(null)
   const featuresRef = useRef(null)
   const guidelinesRef = useRef(null)
+
+  // Prevent automatic redirects
+  useEffect(() => {
+    if (user && !hasRedirected.current) {
+      hasRedirected.current = true
+    }
+  }, [user])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)
