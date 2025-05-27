@@ -14,7 +14,7 @@ export default function WelcomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("home")
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const { user, loading } = useAuth()
+  const { user, loading, isAdmin } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const hasRedirected = useRef(false)
@@ -26,24 +26,28 @@ export default function WelcomePage() {
   const featuresRef = useRef(null)
   const guidelinesRef = useRef(null)
 
-  // Handle initial load and auth state
+  // Handle scroll to section
   useEffect(() => {
-    // Skip the first render
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300)
     }
 
-    // Only redirect if we're not loading and user is authenticated
-    if (!loading && user && !hasRedirected.current && pathname === '/welcome') {
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Handle authentication state
+  useEffect(() => {
+    if (!loading && user && !hasRedirected.current) {
       hasRedirected.current = true
+      const destination = isAdmin ? '/admin/dashboard' : '/user'
       // Add a small delay before redirect
       const timeoutId = setTimeout(() => {
-        router.push('/user')
+        router.push(destination)
       }, 100)
       return () => clearTimeout(timeoutId)
     }
-  }, [loading, user, router, pathname])
+  }, [loading, user, router, isAdmin])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)
@@ -84,13 +88,6 @@ export default function WelcomePage() {
   // Handle scroll events to update active section
   useEffect(() => {
     const handleScroll = () => {
-      // Show/hide scroll to top button
-      if (window.scrollY > 300) {
-        setShowScrollTop(true)
-      } else {
-        setShowScrollTop(false)
-      }
-
       // Determine which section is currently in view
       const scrollPosition = window.scrollY + 100 // Add offset for better detection
 

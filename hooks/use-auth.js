@@ -191,18 +191,27 @@ export function AuthProvider({ children }) {
       // 1. User is not authenticated AND
       // 2. Current route is not public AND
       // 3. Not already on the login page
-      // 4. Not on the welcome page
-      if (!user && !isPublicRoute && pathname !== '/login' && pathname !== '/welcome') {
+      if (!user && !isPublicRoute && pathname !== '/login') {
         // Add a small delay to prevent immediate redirect
         const timeoutId = setTimeout(() => {
-          if (pathname !== '/welcome') {  // Double check we're not on welcome page
-            router.push('/login')
-          }
+          // Store the intended destination
+          sessionStorage.setItem('redirectAfterLogin', pathname)
+          router.push('/login')
+        }, 100)
+        return () => clearTimeout(timeoutId)
+      }
+
+      // If user is authenticated and on a public route (except welcome),
+      // redirect to appropriate dashboard
+      if (user && isPublicRoute && pathname !== '/welcome') {
+        const timeoutId = setTimeout(() => {
+          const destination = isAdmin ? '/admin/dashboard' : '/user'
+          router.push(destination)
         }, 100)
         return () => clearTimeout(timeoutId)
       }
     }
-  }, [loading, user, pathname, router])
+  }, [loading, user, pathname, router, isAdmin])
 
   // Helper function to get a default profile image
   const getDefaultProfileImage = (userId) => {

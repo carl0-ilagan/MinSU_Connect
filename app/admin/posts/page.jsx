@@ -141,14 +141,12 @@ export default function PostModerationPage() {
   const [showDeclineDialog, setShowDeclineDialog] = useState(false)
   const [declineReason, setDeclineReason] = useState("")
   const [processingPost, setProcessingPost] = useState(null)
-  const [activeTab, setActiveTab] = useState("pending")
+  const [selectedStatus, setSelectedStatus] = useState("pending")
   const { toast } = useToast()
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [postsPerPage] = useState(5)
-
-  const [selectedStatus, setSelectedStatus] = useState("all")
 
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [statsPost, setStatsPost] = useState(null)
@@ -166,7 +164,7 @@ export default function PostModerationPage() {
   useEffect(() => {
     // Update paginated posts when all posts or page changes
     updatePaginatedPosts()
-  }, [allPosts, currentPage, activeTab, searchQuery])
+  }, [allPosts, currentPage, selectedStatus, searchQuery])
 
   // Set up real-time listeners for posts
   const setupPostsListeners = () => {
@@ -296,11 +294,14 @@ export default function PostModerationPage() {
 
   // Update paginated posts
   const updatePaginatedPosts = () => {
+    // Get the correct posts array based on selectedStatus
+    const statusPosts = allPosts[selectedStatus] || []
+    
     // Filter posts based on search query
-    const filteredPosts = getFilteredPostsByStatus().filter(
+    const filteredPosts = statusPosts.filter(
       (post) =>
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.user.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        post.user.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     // Apply pagination
@@ -326,12 +327,13 @@ export default function PostModerationPage() {
   }
 
   const handleNextPage = () => {
-    const totalFiltered = allPosts[activeTab].filter(
+    const statusPosts = allPosts[selectedStatus] || []
+    const filteredPosts = statusPosts.filter(
       (post) =>
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.user.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    ).length
-    const totalPages = Math.ceil(totalFiltered / postsPerPage)
+        post.user.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1)
     }
@@ -345,9 +347,6 @@ export default function PostModerationPage() {
 
   // Filter posts based on selected status
   const getFilteredPostsByStatus = () => {
-    if (selectedStatus === "all") {
-      return allPosts.all || []
-    }
     return allPosts[selectedStatus] || []
   }
 
@@ -476,12 +475,18 @@ export default function PostModerationPage() {
               </CardDescription>
             </div>
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto items-stretch md:items-center">
-              <Select value={selectedStatus} onValueChange={(value) => { setSelectedStatus(value); setCurrentPage(1) }}>
+              <Select 
+                value={selectedStatus} 
+                onValueChange={(value) => { 
+                  setSelectedStatus(value)
+                  setCurrentPage(1) // Reset to first page when changing status
+                  setSearchQuery("") // Reset search when changing status
+                }}
+              >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Posts ({allPosts.all?.length || 0})</SelectItem>
                   <SelectItem value="pending">Pending ({allPosts.pending.length})</SelectItem>
                   <SelectItem value="approved">Approved ({allPosts.approved.length})</SelectItem>
                   <SelectItem value="declined">Declined ({allPosts.declined.length})</SelectItem>
@@ -632,7 +637,7 @@ export default function PostModerationPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleNextPage}
-                    disabled={currentPage === Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
+                    disabled={currentPage >= Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
                     className="transition-all duration-200"
                   >
                     Next
@@ -645,7 +650,9 @@ export default function PostModerationPage() {
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium">No posts found</h3>
-              <p className="text-muted-foreground">Posts will appear here</p>
+              <p className="text-muted-foreground">
+                {searchQuery ? "No posts match your search criteria" : `No ${selectedStatus} posts available`}
+              </p>
             </div>
           )}
         </CardContent>

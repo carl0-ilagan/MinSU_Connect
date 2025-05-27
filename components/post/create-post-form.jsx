@@ -16,9 +16,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 // Anonymous user profile image
 const ANONYMOUS_PROFILE_IMAGE = "/anonymous-user.jpeg"
 
-// Maximum size for Firestore document (1MB to be safe)
-const MAX_FIRESTORE_SIZE = 1024 * 1024
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024 // 50MB
+// Maximum size for Firestore document (900KB to be safe)
+const MAX_FIRESTORE_SIZE = 900 * 1024
 
 export function CreatePostForm({ onPostCreated }) {
   const [content, setContent] = useState("")
@@ -58,10 +57,11 @@ export function CreatePostForm({ onPostCreated }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (file.size > MAX_FIRESTORE_SIZE) {
+      if (file.size > 5 * 1024 * 1024) {
+        // Reduced to 5MB max
         toast({
           title: "File too large",
-          description: "Image must be less than 1MB",
+          description: "Image must be less than 5MB",
           variant: "destructive",
         })
         return
@@ -84,6 +84,8 @@ export function CreatePostForm({ onPostCreated }) {
         // Check if image needs compression
         if (imageData.length > MAX_FIRESTORE_SIZE) {
           setProcessingStatus("Compressing image...")
+
+          // Compress in steps until it's small enough
           compressImageToSize(imageData, MAX_FIRESTORE_SIZE).then((compressed) => {
             console.log(
               `Compressed image: ${Math.round(imageData.length / 1024)}KB → ${Math.round(compressed.length / 1024)}KB`,
@@ -91,6 +93,8 @@ export function CreatePostForm({ onPostCreated }) {
             setProcessingProgress(100)
             setProcessingStatus("Image ready")
             setIsProcessing(false)
+
+            // Update preview with compressed version
             setPreviewUrl(compressed)
           })
         } else {
@@ -106,10 +110,11 @@ export function CreatePostForm({ onPostCreated }) {
   const handleVideoChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (file.size > MAX_VIDEO_SIZE) {
+      if (file.size > 5 * 1024 * 1024) {
+        // Reduced to 5MB max for videos too
         toast({
           title: "File too large",
-          description: "Video must be less than 50MB",
+          description: "Video must be less than 5MB for direct upload to Firestore",
           variant: "destructive",
         })
         return
@@ -126,9 +131,25 @@ export function CreatePostForm({ onPostCreated }) {
       reader.onload = () => {
         const videoData = reader.result
         setVideoPreviewUrl(videoData)
-        setProcessingProgress(100)
-        setProcessingStatus("Video ready")
-        setIsProcessing(false)
+        setProcessingProgress(50)
+
+        // Check if video is too large for Firestore
+        if (videoData.length > MAX_FIRESTORE_SIZE) {
+          setProcessingStatus("Video too large for direct upload")
+          toast({
+            title: "Video too large",
+            description: "Please select a smaller video (under 900KB)",
+            variant: "destructive",
+          })
+          setSelectedVideo(null)
+          setVideoPreviewUrl(null)
+          setIsProcessing(false)
+          if (videoInputRef.current) videoInputRef.current.value = ""
+        } else {
+          setProcessingProgress(100)
+          setProcessingStatus("Video ready")
+          setIsProcessing(false)
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -264,6 +285,9 @@ export function CreatePostForm({ onPostCreated }) {
     setProcessingProgress(10)
 
     try {
+      console.log("Starting post submission process...")
+      console.log("Anonymous mode:", isAnonymous)
+
       // Get user profile information
       const userFullName =
         userData?.firstName && userData?.lastName
@@ -272,6 +296,9 @@ export function CreatePostForm({ onPostCreated }) {
 
       const userProfileImage = userData?.profileImage || userData?.photoURL || user.photoURL || null
 
+      console.log("User profile image:", userProfileImage)
+      console.log("User full name:", userFullName)
+
       // Prepare post data
       const postData = {
         content: content.trim() || "",
@@ -279,34 +306,70 @@ export function CreatePostForm({ onPostCreated }) {
         likes: 0,
         comments: 0,
         status: "pending",
+        // Always include the real user ID for security rules
         userId: user.uid,
+        // But mark as anonymous if requested
         isAnonymous: isAnonymous,
+        // Store user's first and last name separately if available
         firstName: isAnonymous ? null : userData?.firstName || null,
         lastName: isAnonymous ? null : userData?.lastName || null,
-        userName: isAnonymous ? "Anonymous" : userFullName,
-        userAvatar: isAnonymous ? ANONYMOUS_PROFILE_IMAGE : userProfileImage,
-        userProfileImage: isAnonymous ? null : userProfileImage,
-        profileImage: isAnonymous ? null : userProfileImage,
       }
 
-      // Add image if available
+      // For anonymous posts, use anonymous name and avatar
+      if (isAnonymous) {
+        postData.userName = "Anonymous"
+        postData.userAvatar = ANONYMOUS_PROFILE_IMAGE
+      } else {
+        // For regular posts, include user details
+        postData.userName = userFullName
+        postData.userAvatar = userProfileImage
+
+        // Add additional profile image fields for better compatibility
+        postData.userProfileImage = userProfileImage
+        postData.profileImage = userProfileImage
+      }
+
+      // Add image directly to post data if available
       if (previewUrl) {
         setProcessingStatus("Adding image to post...")
         setProcessingProgress(40)
-        postData.image = previewUrl
+
+        // Check final size
+        if (previewUrl.length > MAX_FIRESTORE_SIZE) {
+          // Try one more compression if still too large
+          const finalCompressed = await compressImageToSize(previewUrl, MAX_FIRESTORE_SIZE, 3)
+          postData.image = finalCompressed
+        } else {
+          postData.image = previewUrl
+        }
+
         setProcessingProgress(70)
       }
 
-      // Add video if available
+      // Add video directly to post data if available
       if (videoPreviewUrl) {
         setProcessingStatus("Adding video to post...")
         setProcessingProgress(40)
+
+        // Check final size
+        if (videoPreviewUrl.length > MAX_FIRESTORE_SIZE) {
+          toast({
+            title: "Video too large",
+            description: "Video is too large for Firestore. Please select a smaller video.",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          setProcessingStatus("")
+          return
+        }
+
         postData.video = videoPreviewUrl
         setProcessingProgress(70)
       }
 
       setProcessingStatus("Saving post...")
       setProcessingProgress(80)
+      console.log("Saving post to Firestore...")
 
       // Save to Firestore
       const docRef = await addDoc(collection(db, "posts"), postData)
@@ -334,6 +397,7 @@ export function CreatePostForm({ onPostCreated }) {
         onPostCreated()
       }
 
+      // Show global notification
       toast({
         title: "Success",
         description: "Your post has been submitted for approval.",
@@ -342,11 +406,18 @@ export function CreatePostForm({ onPostCreated }) {
       })
     } catch (error) {
       console.error("Error creating post:", error)
+
+      // Safely extract error details
+      const errorCode = error.code || "unknown-error"
+      const errorMessage = error.message || "Unknown error occurred"
+      console.error("Error details:", errorCode, errorMessage)
+
       let userErrorMessage = "Failed to create post. Please try again."
 
-      if (error.code === "permission-denied") {
-        userErrorMessage = "You don't have permission to create this post. Please check if you're logged in and try again."
-      } else if (error.code === "unavailable") {
+      if (errorCode === "permission-denied") {
+        userErrorMessage =
+          "You don't have permission to create this post. Please check if you're logged in and try again."
+      } else if (errorCode === "unavailable") {
         userErrorMessage = "Network error. Please check your connection and try again."
       } else if (error.message && error.message.includes("maximum allowed size")) {
         userErrorMessage = "Your post is too large. Please use a smaller image or video."
