@@ -195,7 +195,9 @@ export function AuthProvider({ children }) {
       if (!user && !isPublicRoute && pathname !== '/login' && pathname !== '/welcome') {
         // Add a small delay to prevent immediate redirect
         const timeoutId = setTimeout(() => {
-          router.push('/login')
+          if (pathname !== '/welcome') {  // Double check we're not on welcome page
+            router.push('/login')
+          }
         }, 100)
         return () => clearTimeout(timeoutId)
       }

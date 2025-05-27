@@ -8,13 +8,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Menu, X, Check, Users, ArrowUp, GraduationCap, BookOpen, Building2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function WelcomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("home")
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const hasRedirected = useRef(false)
+  const isInitialMount = useRef(true)
 
   // Create refs for each section
   const homeRef = useRef(null)
@@ -22,12 +25,23 @@ export default function WelcomePage() {
   const featuresRef = useRef(null)
   const guidelinesRef = useRef(null)
 
-  // Prevent automatic redirects
+  // Handle initial load and auth state
   useEffect(() => {
-    if (user && !hasRedirected.current) {
-      hasRedirected.current = true
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
     }
-  }, [user])
+
+    // Only redirect if we're not loading and user is authenticated
+    if (!loading && user && !hasRedirected.current) {
+      hasRedirected.current = true
+      // Add a small delay before redirect
+      const timeoutId = setTimeout(() => {
+        router.push('/user')
+      }, 100)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [loading, user, router])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)
