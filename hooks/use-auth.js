@@ -178,7 +178,8 @@ export function AuthProvider({ children }) {
     if (!loading) {
       const isPublicRoute = pathname?.includes('/login') || 
                           pathname?.includes('/register') || 
-                          pathname?.includes('/forgot-password')
+                          pathname?.includes('/forgot-password') ||
+                          pathname?.includes('/welcome')
       
       if (!user && !isPublicRoute) {
         router.push('/login')
