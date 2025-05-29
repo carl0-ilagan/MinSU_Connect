@@ -116,7 +116,7 @@ export function AccountStep({ formData, updateFormData, errors }) {
     setCapturedImage(null)
     setIdCheckError("")
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.play()
