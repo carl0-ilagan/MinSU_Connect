@@ -83,14 +83,15 @@ export function MobileNav() {
     <>
       {/* Top header for mobile */}
       <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-border h-14 px-3 flex items-center justify-between md:hidden shadow-sm">
-        <Link href="/user" className="flex items-center gap-2">
+        <Link href="/user" className="flex items-center gap-2 flex-shrink-0">
           <Image src="/MINSU.png" alt="Mindoro State University" width={32} height={32} className="rounded-full" />
-          <span className="font-bold text-sm">
-            <span className="text-yellow-500">MINSU</span> <span className="text-green-500">Connect</span>
+          <span className="font-bold text-xl">
+            <span className="text-yellow-500">MINSU</span>
+            <span className="text-green-600">Connect</span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {/* Mobile Search */}
           <MobileSearch />
 

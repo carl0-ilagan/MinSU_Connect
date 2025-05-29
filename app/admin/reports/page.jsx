@@ -274,73 +274,74 @@ export default function AdminReportsPage() {
         icon={<FileText className="h-6 w-6 text-white" />} // Example icon
       />
 
-      <Card className="shadow-md border-0 rounded-xl overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl font-bold">Reported Posts Overview</CardTitle>
-              <CardDescription>
-                {isLoading ? "Loading..." : `${posts.length} posts shown (${allPosts.length} total)`}
-              </CardDescription>
+      <div className="max-w-full mx-auto py-6 w-full px-2 sm:px-4 overflow-x-auto">
+        <Card className="shadow-md border-0 rounded-xl overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl font-bold">Reported Posts Overview</CardTitle>
+                <CardDescription>
+                  {isLoading ? "Loading..." : `${posts.length} posts shown (${allPosts.length} total)`}
+                </CardDescription>
+              </div>
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search posts..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="pl-10 bg-muted/50 border rounded-full focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
             </div>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search posts..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="pl-10 bg-muted/50 border rounded-full focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-               {/* Basic skeleton for list items */}
-              {[...Array(postsPerPage)].map((_, i) => (
-                <div key={i} className="h-20 w-full bg-muted rounded-lg animate-pulse"></div>
-              ))}
-            </div>
-          ) : posts.length > 0 ? (
-            <div className="space-y-4">
-              {/* List of posts */}
-              {posts.map(post => (
-                // Wrap each post item in a Link
-                <div key={post.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-medium truncate mr-4">{post.content.substring(0, 100)}{post.content.length > 100 ? '...' : ''}</h3>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        {post.reports.length} Reports
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => handleViewDetails(post)}
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Details
-                      </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                 {/* Basic skeleton for list items */}
+                {[...Array(postsPerPage)].map((_, i) => (
+                  <div key={i} className="h-20 w-full bg-muted rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+            ) : posts.length > 0 ? (
+              <div className="space-y-4">
+                {/* List of posts */}
+                {posts.map(post => (
+                  // Wrap each post item in a Link
+                  <div key={post.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium mr-4 flex-1 break-words">{post.content.substring(0, 100)}{post.content.length > 100 ? '...' : ''}</h3>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          {post.reports.length} Reports
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => handleViewDetails(post)}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                        <span>Posted by: {post.userName}</span>
+                         <span>{formatDistanceToNow(post.timestamp, { addSuffix: true })}</span>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center text-sm text-muted-foreground">
-                      <span>Posted by: {post.userName}</span>
-                       <span>{formatDistanceToNow(post.timestamp, { addSuffix: true })}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No reported posts found</h3>
-              <p className="text-muted-foreground">Try adjusting your search</p>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">No reported posts found</h3>
+                <p className="text-muted-foreground">Try adjusting your search</p>
+              </div>
+            )}
 
            {/* Pagination Controls */}
            <div className="flex justify-center items-center gap-4 mt-6">
@@ -370,10 +371,11 @@ export default function AdminReportsPage() {
            </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Post Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="w-full max-w-full sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Post Details</DialogTitle>
             <DialogDescription>Review the post and take action</DialogDescription>
@@ -474,7 +476,7 @@ export default function AdminReportsPage() {
 
       {/* Action Confirmation Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-full max-w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {actionType === "reviewed" ? "Mark as Reviewed" : "Decline Post"}

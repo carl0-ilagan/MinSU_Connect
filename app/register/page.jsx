@@ -10,6 +10,7 @@ import { ArrowLeft } from "lucide-react"
 import RegistrationForm from "@/components/registration/registration-form"
 import { WelcomeModal } from "@/components/welcome-modal"
 import { useAuth } from "@/hooks/use-auth"
+import Script from "next/script"
 
 export default function RegisterPage() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
@@ -50,6 +51,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 to-emerald-100">
+      <Script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js" strategy="beforeInteractive" />
       {/* Decorative elements */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-gradient-to-br from-green-300/20 to-emerald-400/20 rounded-full blur-3xl transform translate-x-1/4 -translate-y-1/4"></div>

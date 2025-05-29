@@ -166,8 +166,8 @@ export default function SettingsPage() {
         </div>
       </PageBanner>
 
-      <div className="max-w-6xl mx-auto py-10">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <div className="max-w-6xl mx-auto py-10 w-full px-2 sm:px-4 overflow-x-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Lock className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="security">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
               {/* Left Column - Change Password */}
               <div className="h-full">
                 <Card className="rounded-xl shadow-md border-0 h-full flex flex-col">

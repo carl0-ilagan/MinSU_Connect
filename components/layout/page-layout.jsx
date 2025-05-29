@@ -27,7 +27,7 @@ export function PageLayout({ children }) {
   return (
     <div className="min-h-screen bg-background">
       {isMobile ? <MobileNav /> : <DesktopNav />}
-      <div className={`container mx-auto px-3 sm:px-4 pt-4 pb-24 md:pt-4 md:pb-16 max-w-7xl ${isMobile ? "mt-4" : ""}`}>
+      <div className={`container mx-auto px-3 sm:px-4 pt-4 pb-24 md:pt-4 md:pb-16 max-w-7xl ${isMobile ? "mt-16" : ""}`}>
         {children}
       </div>
     </div>

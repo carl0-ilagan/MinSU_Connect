@@ -7,46 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Menu, X, Check, Users, ArrowUp, GraduationCap, BookOpen, Building2 } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import { useRouter, usePathname } from "next/navigation"
 
 export default function WelcomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("home")
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const { user, loading, isAdmin } = useAuth()
-  const router = useRouter()
-  const pathname = usePathname()
-  const hasRedirected = useRef(false)
-  const isInitialMount = useRef(true)
 
   // Create refs for each section
   const homeRef = useRef(null)
   const aboutRef = useRef(null)
   const featuresRef = useRef(null)
   const guidelinesRef = useRef(null)
-
-  // Handle scroll to section
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300)
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Handle authentication state
-  useEffect(() => {
-    if (!loading && user && !hasRedirected.current) {
-      // Only redirect if not already on welcome page
-      if (pathname !== '/welcome') {
-        hasRedirected.current = true
-        const destination = isAdmin ? '/admin/dashboard' : '/user'
-        router.push(destination)
-      }
-    }
-  }, [loading, user, router, isAdmin, pathname])
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen)
@@ -87,6 +58,13 @@ export default function WelcomePage() {
   // Handle scroll events to update active section
   useEffect(() => {
     const handleScroll = () => {
+      // Show/hide scroll to top button
+      if (window.scrollY > 300) {
+        setShowScrollTop(true)
+      } else {
+        setShowScrollTop(false)
+      }
+
       // Determine which section is currently in view
       const scrollPosition = window.scrollY + 100 // Add offset for better detection
 
@@ -122,7 +100,7 @@ export default function WelcomePage() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Image src="/MINSU.png" alt="Mindoro State University" width={40} height={40} className="rounded-full" />
-            <span className="font-bold text-xl hidden sm:inline-block">
+            <span className="font-bold text-xl">
               <span className="text-yellow-500">MINSU</span>
               <span className="text-green-600">Connect</span>
             </span>
@@ -189,6 +167,14 @@ export default function WelcomePage() {
         {menuOpen && (
           <div className="md:hidden bg-white border-t animate-in">
             <div className="container mx-auto px-4 py-2">
+              {/* Branding for mobile menu */}
+              <div className="flex items-center gap-2 mb-4">
+                <Image src="/MINSU.png" alt="Mindoro State University" width={32} height={32} className="rounded-full" />
+                <span className="font-bold text-lg">
+                  <span className="text-yellow-500">MINSU</span>
+                  <span className="text-green-600">Connect</span>
+                </span>
+              </div>
               <nav className="flex flex-col space-y-3 py-3">
                 <button
                   onClick={() => scrollToSection("home")}
@@ -517,138 +503,181 @@ export default function WelcomePage() {
           </div>
         </section>
 
+        {/* Our Team Section */}
+        <section className="py-16 bg-white px-4" id="team">
+          <div className="container mx-auto max-w-4xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4 animate-in slide-up-fade">Meet the Team</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-in slide-up-fade animation-delay-100">
+                Get to know the dedicated individuals who brought MINSU Connect to life.
+              </p>
+            </div>
+
+            {/* First row: 3 members */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mb-8">
+              {/* Team Member 1: Allan Pedraza */}
+              <div className="flex flex-col items-center text-center animate-in slide-up-fade animation-delay-200">
+                <a href="https://www.facebook.com/allan.pedraza.536178" target="_blank" rel="noopener noreferrer" className="w-full h-full">
+                  <Card className="w-full h-full rounded-xl shadow-md border-0 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+                    <CardContent className="pt-6 flex flex-col items-center h-full">
+                      <Image
+                        src="/Allan Pedraza.jpg"
+                        alt="Allan Pedraza"
+                        width={120}
+                        height={120}
+                        className="rounded-full mb-4 object-cover aspect-square"
+                      />
+                      <h3 className="font-bold text-lg">Allan Pedraza</h3>
+                      <p className="text-sm text-muted-foreground">Team Member</p>
+                      <p className="text-sm text-gray-600 mt-2">Contributed to the development and implementation of key features.</p>
+                    </CardContent>
+                  </Card>
+                </a>
+              </div>
+
+              {/* Team Member 2: Carl Ilagan (Programmer) */}
+              <div className="flex flex-col items-center text-center animate-in slide-up-fade animation-delay-300">
+                <a href="https://www.facebook.com/llllllooooiii19/" target="_blank" rel="noopener noreferrer" className="w-full h-full">
+                  <Card className="w-full h-full rounded-xl shadow-md border-0 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+                    <CardContent className="pt-6 flex flex-col items-center h-full">
+                      <Image
+                        src="/Carl Ilagan.jpg"
+                        alt="Carl Ilagan"
+                        width={120}
+                        height={120}
+                        className="rounded-full mb-4 object-cover aspect-square"
+                      />
+                      <h3 className="font-bold text-lg">Carl Ilagan</h3>
+                      <p className="text-sm text-muted-foreground">Programmer</p>
+                      <p className="text-sm text-gray-600 mt-2">Key developer focused on building responsive user interfaces and enhancing the user experience.</p>
+                    </CardContent>
+                  </Card>
+                </a>
+              </div>
+
+              {/* Team Member 3: Sir. Nicko Magnaye (Adviser) */}
+              <div className="flex flex-col items-center text-center animate-in slide-up-fade animation-delay-400">
+                <a href="https://www.facebook.com/eyangam.okcin" target="_blank" rel="noopener noreferrer" className="w-full h-full">
+                  <Card className="w-full h-full rounded-xl shadow-md border-0 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+                    <CardContent className="pt-6 flex flex-col items-center h-full">
+                      <Image
+                        src="/Sir. Nicko Magnaye.png"
+                        alt="Sir. Nicko Magnaye"
+                        width={120}
+                        height={120}
+                        className="rounded-full mb-4 object-cover aspect-square"
+                      />
+                      <h3 className="font-bold text-lg">Sir. Nicko Magnaye</h3>
+                      <p className="text-sm text-muted-foreground">Project Adviser</p>
+                      <p className="text-sm text-gray-600 mt-2">Provided expert guidance and mentorship, ensuring the project's successful completion.</p>
+                    </CardContent>
+                  </Card>
+                </a>
+              </div>
+            </div>
+
+            {/* Second row: 2 members, centered */}
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                {/* Team Member 4: Theus Vito (Programmer) */}
+                <div className="flex flex-col items-center text-center animate-in slide-up-fade animation-delay-500">
+                  <a href="https://www.facebook.com/aezratheus.vito.05" target="_blank" rel="noopener noreferrer" className="w-full h-full">
+                    <Card className="w-full h-full rounded-xl shadow-md border-0 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+                      <CardContent className="pt-6 flex flex-col items-center h-full">
+                        <Image
+                          src="/Theus Vito.jpg"
+                          alt="Theus Vito"
+                          width={120}
+                          height={120}
+                          className="rounded-full mb-4 object-cover aspect-square"
+                        />
+                        <h3 className="font-bold text-lg">Theus Vito</h3>
+                        <p className="text-sm text-muted-foreground">Programmer</p>
+                        <p className="text-sm text-gray-600 mt-2">Responsible for developing backend functionalities and integrating the application with necessary services.</p>
+                      </CardContent>
+                    </Card>
+                  </a>
+                </div>
+
+                {/* Team Member 5: Doms Agoncillo */}
+                <div className="flex flex-col items-center text-center animate-in slide-up-fade animation-delay-600">
+                  <a href="https://www.facebook.com/doms.second" target="_blank" rel="noopener noreferrer" className="w-full h-full">
+                    <Card className="w-full h-full rounded-xl shadow-md border-0 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-lg">
+                      <CardContent className="pt-6 flex flex-col items-center h-full">
+                        <Image
+                          src="/Doms Agoncillo.jpg"
+                          alt="Doms Agoncillo"
+                          width={120}
+                          height={120}
+                          className="rounded-full mb-4 object-cover aspect-square"
+                        />
+                        <h3 className="font-bold text-lg">Doms Agoncillo</h3>
+                        <p className="text-sm text-muted-foreground">Team Member</p>
+                        <p className="text-sm text-gray-600 mt-2">Assisted in various aspects of the project development, contributing to overall progress.</p>
+                      </CardContent>
+                    </Card>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Guidelines Section */}
         <section ref={guidelinesRef} className="py-16 bg-white px-4" id="guidelines">
           <div className="container mx-auto max-w-4xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4 animate-in slide-up-fade">Community Guidelines</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-in slide-up-fade animation-delay-100">
-                Our guidelines ensure that <span className="text-yellow-500">MINSU</span>
-                <span className="text-green-600">Connect</span> remains a safe, respectful space for all university
-                members.
+                To ensure a positive and respectful environment, please adhere to our guidelines:
               </p>
             </div>
 
-            <Tabs defaultValue="dos" className="w-full animate-in slide-up-fade animation-delay-200">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-green-100">
-                <TabsTrigger value="dos" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                  Do's
-                </TabsTrigger>
-                <TabsTrigger value="donts" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                  Don'ts
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="dos" className="animate-in">
-                <Card className="rounded-xl shadow-md border-0">
-                  <CardContent className="pt-6">
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Uphold Academic Integrity</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Maintain honesty and ethical standards in all academic discussions and resource sharing.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Share Constructively</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Post content that adds value to the university community and fosters positive discussion.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Respect Privacy</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Respect others' privacy and be mindful of the personal information you share about fellow
-                            students and faculty.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Support Fellow Students</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Offer encouragement and academic support to community members when appropriate.
-                          </p>
-                        </div>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="donts" className="animate-in">
-                <Card className="rounded-xl shadow-md border-0">
-                  <CardContent className="pt-6">
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <X className="h-3 w-3 text-red-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">No Academic Dishonesty</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Sharing exam answers, plagiarizing content, or facilitating cheating is strictly prohibited.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <X className="h-3 w-3 text-red-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">No Harassment</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Bullying, intimidation, or harassment of any student, faculty, or staff is not tolerated.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <X className="h-3 w-3 text-red-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">No Inappropriate Content</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Content that violates university policies or is inappropriate for an academic setting is
-                            prohibited.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <X className="h-3 w-3 text-red-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">No Misinformation</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Spreading false information about university policies, courses, or academic matters is not
-                            permitted.
-                          </p>
-                        </div>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <Card className="rounded-xl shadow-md border-0 overflow-hidden animate-in slide-up-fade animation-delay-200">
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-bold text-xl mb-2">Respect and Inclusivity</h3>
+                    <p className="text-muted-foreground">
+                      Treat all members with respect, regardless of their background, beliefs, or identity. Harassment,
+                      discrimination, or hateful content is strictly prohibited.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl mb-2">Academic Integrity</h3>
+                    <p className="text-muted-foreground">
+                      Uphold academic honesty. Do not engage in plagiarism, cheating, or any other form of academic
+                      misconduct. Sharing copyrighted materials without permission is not allowed.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl mb-2">Relevant Content</h3>
+                    <p className="text-muted-foreground">
+                      Keep discussions relevant to the university community. Avoid spam, self-promotion, or off-topic
+                      content.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl mb-2">Privacy and Safety</h3>
+                    <p className="text-muted-foreground">
+                      Protect your personal information and respect the privacy of others. Do not share sensitive data
+                      or engage in any activity that could compromise the safety or security of the community.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl mb-2">Constructive Communication</h3>
+                    <p className="text-muted-foreground">
+                      Engage in discussions constructively. Disagreements are natural, but express your views respectfully
+                      and focus on the topic at hand.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="text-center mt-8 animate-in slide-up-fade animation-delay-300">
-              <span className="text-muted-foreground">Read Full Guidelines (coming soon)</span>
+            <div className="mt-8 text-center text-sm text-muted-foreground animate-in slide-up-fade animation-delay-300">
+              Violations of these guidelines may result in content removal, temporary suspension, or permanent banning
+              from the platform.
             </div>
           </div>
         </section>
@@ -684,124 +713,72 @@ export default function WelcomePage() {
         </section>
       </main>
 
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Image
-                  src="/MINSU.png"
-                  alt="Mindoro State University"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-                <span className="font-bold text-xl">
-                  <span className="text-yellow-400">MINSU</span>
-                  <span className="text-green-300">Connect</span>
-                </span>
-              </div>
-              <p className="text-gray-400 mb-4">Mindoro State University's Community Forum</p>
-              <div className="flex gap-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      fillRule="evenodd"
-                      d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                  </svg>
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      fillRule="evenodd"
-                      d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </a>
-              </div>
+      <footer className="bg-gray-800 text-gray-300 py-10 px-4">
+        <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl">
+          {/* Logo and Description */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Image src="/MINSU.png" alt="MINSU Logo" width={40} height={40} className="rounded-full" />
+              <span className="font-bold text-2xl text-white">
+                <span className="text-yellow-400">MINSU</span><span className="text-green-500">Connect</span>
+              </span>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-100">Quick Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={() => scrollToSection("home")}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Home
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => scrollToSection("about")}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    About
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => scrollToSection("features")}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Features
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => scrollToSection("guidelines")}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Guidelines
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-100">University Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                    Official MINSU Website
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                    Academic Calendar
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                    Student Portal
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                    Library Resources
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            <p className="text-sm">
+              The official community platform for Mindoro State University. Connect, share, and engage with your
+              university community.
+            </p>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; {new Date().getFullYear()} Mindoro State University. All rights reserved.</p>
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="font-semibold text-white mb-4">Quick Links</h3>
+            <ul className="space-y-2 text-sm">
+              <li><button onClick={() => scrollToSection("home")} className="hover:text-white transition-colors">Home</button></li>
+              <li><button onClick={() => scrollToSection("about")} className="hover:text-white transition-colors">About</button></li>
+              <li><button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors">Features</button></li>
+              <li><button onClick={() => scrollToSection("guidelines")} className="hover:text-white transition-colors">Guidelines</button></li>
+              <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
+              <li><Link href="/register" className="hover:text-white transition-colors">Register</Link></li>
+            </ul>
           </div>
+
+          {/* Resources & Enrollment */}
+          <div>
+            <h3 className="font-semibold text-white mb-4">Resources & Enrollment</h3>
+            <ul className="space-y-2 text-sm">
+              <li><a href="https://www.minsu.edu.ph/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Official MINSU Website</a></li>
+              <li><a href="https://mmc-enrollment.minsu.edu.ph/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Main Campus Enrollment</a></li>
+              <li><a href="https://mbc.enrollment.minsu.edu.ph/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Bongabong Campus Enrollment</a></li>
+               {/* Add Calapan Campus Enrollment if available */}
+               <li><a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors opacity-50 cursor-not-allowed">Calapan City Campus Enrollment (Coming Soon)</a></li>
+            </ul>
+          </div>
+
+          {/* Contact Info (Example) */}
+          {/*
+          <div>
+            <h3 className="font-semibold text-white mb-4">Contact Us</h3>
+            <ul className="space-y-2 text-sm">
+              <li>Email: info@minsuconnect.com</li>
+              <li>Phone: (123) 456-7890</li>
+              <li>Address: University Campus, Mindoro</li>
+            </ul>
+          </div>
+          */}
+
+        </div>
+
+        {/* Copyright */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          © {new Date().getFullYear()} MINSU Connect. All rights reserved.
         </div>
       </footer>
 
-      {/* Scroll to top button */}
+      {/* Scroll to Top Button */}
       {showScrollTop && (
         <button
-          onClick={() => scrollToSection("home")}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-full shadow-lg hover:from-green-600 hover:to-emerald-700 transition-all animate-in zoom-in"
+          className="fixed bottom-6 right-6 bg-green-600 text-white p-3 rounded-full shadow-lg hover:bg-green-700 transition-colors z-50"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Scroll to top"
         >
           <ArrowUp className="h-5 w-5" />

@@ -87,7 +87,7 @@ export default function Home() {
   return (
     <PageLayout>
       <PageBanner
-        title="Welcome to MBC Connect"
+        title="Welcome to MINSU Connect"
         description="Share your thoughts, connect with others, and build a supportive community."
         size="lg"
       >

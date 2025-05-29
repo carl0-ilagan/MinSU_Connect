@@ -400,237 +400,239 @@ export default function AdminUsersPage() {
     <>
       <PageBanner
         title="User Management"
-        description="Manage user accounts and permissions."
+        description="View and manage all registered users on MINSU Connect."
         icon={<Users className="h-6 w-6 text-white" />}
       />
 
-      <Card className="shadow-md border-0 rounded-xl overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl font-bold">Users Overview</CardTitle>
-              <CardDescription>
-                {isLoading ? "Loading..." : `${users.length} users shown (${allUsers.length} total)`}
-              </CardDescription>
-            </div>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  className="pl-10 bg-muted/50 border rounded-full focus:ring-2 focus:ring-primary/20"
-                />
+      <div className="max-w-full mx-auto py-6 w-full px-2 sm:px-4 overflow-x-auto">
+        <Card className="shadow-sm border rounded-xl">
+          <CardHeader className="pb-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl font-bold">Users Overview</CardTitle>
+                <CardDescription>
+                  {isLoading ? "Loading..." : `${users.length} users shown (${allUsers.length} total)`}
+                </CardDescription>
               </div>
-              <Select value={selectedCampus} onValueChange={setSelectedCampus}>
-                <SelectTrigger className="w-[180px]">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    <SelectValue placeholder="Filter by campus" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Campuses</SelectItem>
-                  {campusOptions.map((campus) => (
-                    <SelectItem key={campus.value} value={campus.value}>
-                      {campus.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-[280px]">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4" />
-                    <SelectValue placeholder="Filter by department" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {allDepartments.map((college) => (
-                    <Fragment key={college.college}>
-                      <SelectGroup>
-                        <SelectLabel className="font-semibold text-primary">
-                          {college.college}
-                        </SelectLabel>
-                        {college.departments.map((dept) => (
-                          <SelectItem 
-                            key={dept.value} 
-                            value={dept.value}
-                            disabled={selectedCampus !== "all" && !dept.campuses.includes(selectedCampus)}
-                          >
-                            {dept.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                      <SelectSeparator />
-                    </Fragment>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(usersPerPage)].map((_, i) => (
-                <div key={i} className="h-20 w-full bg-muted rounded-lg animate-pulse"></div>
-              ))}
-            </div>
-          ) : users.length > 0 ? (
-            <div className="space-y-4">
-              {users.map(user => (
-                <div key={user.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.photoURL || user.profileImage} alt={user.displayName} />
-                        <AvatarFallback>
-                          {user.firstName?.[0] || user.lastName?.[0] || user.displayName?.[0] || "U"}
-                        </AvatarFallback>
-                          </Avatar>
-                          <div>
-                        <h3 className="font-medium">
-                          {user.firstName && user.lastName
-                            ? `${user.firstName} ${user.lastName}`
-                            : user.displayName || "Unknown User"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                          </div>
-                        </div>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search users..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="pl-10 bg-muted/50 border rounded-full focus:ring-2 focus:ring-primary/20 max-w-sm w-full"
+                  />
+                </div>
+                <Select value={selectedCampus} onValueChange={setSelectedCampus}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <div className="flex items-center gap-2">
-                      {user.isBanned && (
-                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                          <Ban className="h-3 w-3 mr-1" /> Banned
-                        </Badge>
-                      )}
-                      {user.isDeactivated && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                          <PowerOff className="h-3 w-3 mr-1" /> Deactivated
-                        </Badge>
+                      <Building2 className="h-4 w-4" />
+                      <SelectValue placeholder="Filter by campus" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Campuses</SelectItem>
+                    {campusOptions.map((campus) => (
+                      <SelectItem key={campus.value} value={campus.value}>
+                        {campus.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger className="w-[280px]">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" />
+                      <SelectValue placeholder="Filter by department" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {allDepartments.map((college) => (
+                      <Fragment key={college.college}>
+                        <SelectGroup>
+                          <SelectLabel className="font-semibold text-primary">
+                            {college.college}
+                          </SelectLabel>
+                          {college.departments.map((dept) => (
+                            <SelectItem 
+                              key={dept.value} 
+                              value={dept.value}
+                              disabled={selectedCampus !== "all" && !dept.campuses.includes(selectedCampus)}
+                            >
+                              {dept.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectSeparator />
+                      </Fragment>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(usersPerPage)].map((_, i) => (
+                  <div key={i} className="h-20 w-full bg-muted rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+            ) : users.length > 0 ? (
+              <div className="space-y-4">
+                {users.map(user => (
+                  <div key={user.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={user.photoURL || user.profileImage} alt={user.displayName} />
+                          <AvatarFallback>
+                            {user.firstName?.[0] || user.lastName?.[0] || user.displayName?.[0] || "U"}
+                          </AvatarFallback>
+                            </Avatar>
+                            <div>
+                          <h3 className="font-medium">
+                            {user.firstName && user.lastName
+                              ? `${user.firstName} ${user.lastName}`
+                              : user.displayName || "Unknown User"}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                      <div className="flex items-center gap-2">
+                        {user.isBanned && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            <Ban className="h-3 w-3 mr-1" /> Banned
+                          </Badge>
                         )}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                          <Link href={`/admin/users/${user.id}`}>
-                            <Eye className="h-3 w-3 mr-1" />
-                            View Profile
-                          </Link>
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            {!user.isBanned ? (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setActionType("ban");
-                                  setShowActionDialog(true);
-                                }}
-                                className="text-red-600"
-                              >
-                                <Ban className="h-4 w-4 mr-2" />
-                                Ban User
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setActionType("unban");
-                                  setShowActionDialog(true);
-                                }}
-                                className="text-green-600"
-                              >
-                                <Check className="h-4 w-4 mr-2" />
-                                Unban User
-                              </DropdownMenuItem>
-                            )}
-                            {!user.isDeactivated ? (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setActionType("deactivate");
-                                  setShowActionDialog(true);
-                                }}
-                                className="text-amber-600"
-                              >
-                                <PowerOff className="h-4 w-4 mr-2" />
-                                Deactivate
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setActionType("activate");
-                                  setShowActionDialog(true);
-                                }}
-                                className="text-green-600"
-                              >
-                                <Power className="h-4 w-4 mr-2" />
-                                Activate
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {user.isDeactivated && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            <PowerOff className="h-3 w-3 mr-1" /> Deactivated
+                          </Badge>
+                          )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                          >
+                            <Link href={`/admin/users/${user.id}`}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Profile
+                            </Link>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {!user.isBanned ? (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setActionType("ban");
+                                    setShowActionDialog(true);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Ban className="h-4 w-4 mr-2" />
+                                  Ban User
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setActionType("unban");
+                                    setShowActionDialog(true);
+                                  }}
+                                  className="text-green-600"
+                                >
+                                  <Check className="h-4 w-4 mr-2" />
+                                  Unban User
+                                </DropdownMenuItem>
+                              )}
+                              {!user.isDeactivated ? (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setActionType("deactivate");
+                                    setShowActionDialog(true);
+                                  }}
+                                  className="text-amber-600"
+                                >
+                                  <PowerOff className="h-4 w-4 mr-2" />
+                                  Deactivate
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setActionType("activate");
+                                    setShowActionDialog(true);
+                                  }}
+                                  className="text-green-600"
+                                >
+                                  <Power className="h-4 w-4 mr-2" />
+                                  Activate
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
+                    <div className="mt-2 text-sm text-muted-foreground flex items-center gap-4">
+                      <span className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Last active {formatDistanceToNow(user.lastActive, { addSuffix: true })}
+                      </span>
+                      <span>Joined {formatDistanceToNow(user.createdAt, { addSuffix: true })}</span>
+                    </div>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground flex items-center gap-4">
-                    <span className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Last active {formatDistanceToNow(user.lastActive, { addSuffix: true })}
-                    </span>
-                    <span>Joined {formatDistanceToNow(user.createdAt, { addSuffix: true })}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No users found</h3>
-              <p className="text-muted-foreground">Try adjusting your search</p>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">No users found</h3>
+                <p className="text-muted-foreground">Try adjusting your search</p>
+              </div>
+            )}
 
-          {/* Pagination Controls */}
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="transition-all duration-200"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <span className="text-sm font-medium">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="transition-all duration-200"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="transition-all duration-200"
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              <span className="text-sm font-medium">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="transition-all duration-200"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Action Confirmation Dialog */}
       <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>

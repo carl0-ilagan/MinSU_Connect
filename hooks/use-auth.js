@@ -176,35 +176,16 @@ export function AuthProvider({ children }) {
   // Handle protected routes
   useEffect(() => {
     if (!loading) {
-      // Define public routes that don't require authentication
-      const publicRoutes = [
-        '/welcome',
-        '/login',
-        '/register',
-        '/forgot-password'
-      ]
-      
-      // Check if current path is a public route
-      const isPublicRoute = publicRoutes.some(route => pathname?.startsWith(route))
-      
-      // Only redirect to login if:
-      // 1. User is not authenticated AND
-      // 2. Current route is not public AND
-      // 3. Not already on the login page
-      if (!user && !isPublicRoute && pathname !== '/login') {
-        // Store the intended destination
-        sessionStorage.setItem('redirectAfterLogin', pathname)
+      const isPublicRoute = pathname?.includes('/login') || 
+                          pathname?.includes('/register') || 
+                          pathname?.includes('/forgot-password') ||
+                          pathname === '/' ||
+                          pathname?.includes('/welcome');
+      if (!user && !isPublicRoute) {
         router.push('/login')
       }
-
-      // If user is authenticated and on a public route (except welcome),
-      // redirect to appropriate dashboard
-      if (user && isPublicRoute && pathname !== '/welcome') {
-        const destination = isAdmin ? '/admin/dashboard' : '/user'
-        router.push(destination)
-      }
     }
-  }, [loading, user, pathname, router, isAdmin])
+  }, [loading, user, pathname, router])
 
   // Helper function to get a default profile image
   const getDefaultProfileImage = (userId) => {

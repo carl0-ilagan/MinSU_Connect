@@ -52,17 +52,16 @@ export function AdminTopbar({ sidebarCollapsed, setSidebarCollapsed }) {
 
     // Simulate API call for logout
     setTimeout(() => {
-      // Clear admin auth from localStorage and sessionStorage
+      // Clear admin auth from localStorage
       localStorage.removeItem("adminAuth")
-      sessionStorage.removeItem("adminAuth")
 
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of the admin panel",
       })
 
-      // Redirect to welcome page
-      router.push("/welcome")
+      // Redirect to login page
+      router.push("/login")
     }, 1500) // Simulate a 1.5 second logout process
   }
 

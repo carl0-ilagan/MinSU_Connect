@@ -35,8 +35,9 @@ export function DesktopNav() {
         <div className="flex items-center gap-2">
           <Link href="/user" className="flex items-center gap-2">
             <Image src="/MINSU.png" alt="Mindoro State University" width={32} height={32} className="rounded-full" />
-            <span className="font-bold">
-              <span className="text-yellow-500">MINSU</span> <span className="text-green-500">Connect</span>
+            <span className="font-bold text-xl">
+              <span className="text-yellow-500">MINSU</span>
+              <span className="text-green-600">Connect</span>
             </span>
           </Link>
         </div>

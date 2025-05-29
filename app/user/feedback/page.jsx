@@ -463,15 +463,9 @@ export default function FeedbackPage() {
     <PageLayout>
       <PageBanner
         title="Feedback & Support"
-        description="Submit your feedback, suggestions, or report issues to help us improve MINSU Connect"
-      >
-        <div className="flex items-center mt-4 bg-white/20 p-2 rounded-lg max-w-fit">
-          <HelpCircle className="h-5 w-5 mr-2 text-white" />
-          <span className="text-white text-sm">We value your input</span>
-        </div>
-      </PageBanner>
-
-      <div className="container mx-auto py-6">
+        description="Send us your feedback, suggestions, or report an issue. We're here to help!"
+      />
+      <div className="max-w-4xl mx-auto py-6 w-full px-2 sm:px-4 overflow-x-auto">
         {isAdmin ? (
           <Tabs defaultValue="all" className="w-full">
             <div className="flex justify-between items-center mb-4">

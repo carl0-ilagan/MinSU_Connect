@@ -232,210 +232,212 @@ export default function FeedbackPage() {
         icon={<MessageSquare className="h-6 w-6 text-white" />}
       />
 
-      <Card className="shadow-md border-0 rounded-xl overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-xl font-bold">Feedback</CardTitle>
-              <CardDescription>
-                {isLoading ? "Loading..." : `${feedback.length} feedback items`}
-              </CardDescription>
+      <div className="max-w-full mx-auto py-6 w-full px-2 sm:px-4 overflow-x-auto">
+        <Card className="shadow-md border-0 rounded-xl overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-xl font-bold">Feedback</CardTitle>
+                <CardDescription>
+                  {isLoading ? "Loading..." : `${feedback.length} feedback items`}
+                </CardDescription>
+              </div>
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <SelectValue placeholder="Sort by" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">Latest to Oldest</SelectItem>
+                  <SelectItem value="oldest">Oldest to Latest</SelectItem>
+                  <SelectItem value="pending">Pending First</SelectItem>
+                  <SelectItem value="reviewed">Reviewed First</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[180px]">
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-4 w-4" />
-                  <SelectValue placeholder="Sort by" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="latest">Latest to Oldest</SelectItem>
-                <SelectItem value="oldest">Oldest to Latest</SelectItem>
-                <SelectItem value="pending">Pending First</SelectItem>
-                <SelectItem value="reviewed">Reviewed First</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <FeedbackSkeleton key={i} />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-500">{error}</p>
-            </div>
-          ) : currentFeedback.length > 0 ? (
-            <>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
               <div className="space-y-4">
-                {currentFeedback.map((item) => {
-                  const status = typeof item.status === 'string' && item.status.trim() ? item.status.trim() : 'Pending';
-                  const statusLower = status.toLowerCase();
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex flex-col p-6 border rounded-xl shadow-lg bg-white hover:bg-muted/40 transition-colors gap-2"
-                    >
-                      <div className="flex items-center gap-4 mb-2">
-                        <Avatar className="h-12 w-12 border-2 border-primary/20 shadow">
-                          <AvatarImage src={item.userPhoto} alt={item.userName} />
-                          <AvatarFallback>{(item.userName || "U").charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{item.userName}</h3>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusLower === 'reviewed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {statusLower === 'reviewed' ? 'Reviewed' : 'Pending'}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                              {item.category || 'General'}
-                            </span>
-                          </div>
-                          <span className="text-xs text-muted-foreground block">Posted {formatDistanceToNow(item.createdAt, { addSuffix: true })}</span>
-                        </div>
-                        {typeof item.rating === "number" && (
-                          <div className="flex items-center ml-2">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`h-5 w-5 ${i < item.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                            ))}
-                            <span className="ml-1 text-xs text-muted-foreground">{item.rating}/5</span>
-                          </div>
-                        )}
-                        <div className="ml-auto flex items-center gap-2">
-                          <Select
-                            value={item.status === 'Reviewed' ? 'Reviewed' : 'Pending'}
-                            onValueChange={(value) => handleStatusChange(item.id, value)}
-                            disabled={!!item.adminReply}
-                          >
-                            <SelectTrigger className="h-8 w-[120px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Pending">Pending</SelectItem>
-                              <SelectItem value="Reviewed">Reviewed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {!item.adminReply ? (
-                            <div className="relative">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setPopoverId(popoverId === item.id ? null : item.id)}
-                                aria-label="Reply"
-                              >
-                                <Reply className="h-4 w-4" />
-                              </Button>
-                              {popoverId === item.id && (
-                                <div
-                                  ref={popoverRef}
-                                  className="absolute right-0 z-50 mt-2 w-64 bg-white border border-border rounded-xl shadow-lg p-4"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Textarea
-                                      placeholder="Type your response..."
-                                      value={responseText}
-                                      onChange={(e) => setResponseText(e.target.value)}
-                                      className="min-h-[40px] flex-1 resize-none"
-                                      autoFocus
-                                    />
-                                    <Button
-                                      size="icon"
-                                      onClick={() => { handleRespond(item.id); setPopoverId(null); }}
-                                      disabled={!responseText.trim()}
-                                      loading={respondingId === item.id ? true : undefined}
-                                      className="flex items-center justify-center h-10 w-10"
-                                      tabIndex={0}
-                                      aria-label="Send reply"
-                                    >
-                                      <Send className="h-5 w-5" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                {[1, 2, 3].map((i) => (
+                  <FeedbackSkeleton key={i} />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-500">{error}</p>
+              </div>
+            ) : currentFeedback.length > 0 ? (
+              <>
+                <div className="space-y-4">
+                  {currentFeedback.map((item) => {
+                    const status = typeof item.status === 'string' && item.status.trim() ? item.status.trim() : 'Pending';
+                    const statusLower = status.toLowerCase();
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex flex-col p-6 border rounded-xl shadow-lg bg-white hover:bg-muted/40 transition-colors gap-2"
+                      >
+                        <div className="flex items-center gap-4 mb-2 flex-wrap">
+                          <Avatar className="h-12 w-12 border-2 border-primary/20 shadow">
+                            <AvatarImage src={item.userPhoto} alt={item.userName} />
+                            <AvatarFallback>{(item.userName || "U").charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-lg break-words">{item.userName}</h3>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusLower === 'reviewed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {statusLower === 'reviewed' ? 'Reviewed' : 'Pending'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                {item.category || 'General'}
+                              </span>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setReplyToEdit(item.id)
-                                  setEditedReply(item.adminReply)
-                                  setShowEditReplyDialog(true)
-                                }}
-                                aria-label="Edit reply"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
+                            <span className="text-xs text-muted-foreground block">Posted {formatDistanceToNow(item.createdAt, { addSuffix: true })}</span>
+                          </div>
+                          {typeof item.rating === "number" && (
+                            <div className="flex items-center ml-2 flex-shrink-0">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`h-5 w-5 ${i < item.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                              ))}
+                              <span className="ml-1 text-xs text-muted-foreground flex-shrink-0">{item.rating}/5</span>
                             </div>
                           )}
-                        </div>
-                      </div>
-                      {!item.adminReply ? (
-                        <p className="text-base text-gray-800 mb-2">{item.message || "No feedback provided."}</p>
-                      ) : (
-                        <div className="flex flex-col gap-2 mt-2">
-                          <div className="flex">
-                            <div className="bg-gray-100 rounded-2xl px-4 py-2 max-w-lg text-sm text-gray-900 shadow-sm">
-                              {item.message}
-                            </div>
+                          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                            <Select
+                              value={item.status === 'Reviewed' ? 'Reviewed' : 'Pending'}
+                              onValueChange={(value) => handleStatusChange(item.id, value)}
+                              disabled={!!item.adminReply}
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pending">Pending</SelectItem>
+                                <SelectItem value="Reviewed">Reviewed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {!item.adminReply ? (
+                              <div className="relative">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setPopoverId(popoverId === item.id ? null : item.id)}
+                                  aria-label="Reply"
+                                >
+                                  <Reply className="h-4 w-4" />
+                                </Button>
+                                {popoverId === item.id && (
+                                  <div
+                                    ref={popoverRef}
+                                    className="absolute right-0 z-50 mt-2 w-64 bg-white border border-border rounded-xl shadow-lg p-4"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Textarea
+                                        placeholder="Type your response..."
+                                        value={responseText}
+                                        onChange={(e) => setResponseText(e.target.value)}
+                                        className="min-h-[40px] flex-1 resize-none"
+                                        autoFocus
+                                      />
+                                      <Button
+                                        size="icon"
+                                        onClick={() => { handleRespond(item.id); setPopoverId(null); }}
+                                        disabled={!responseText.trim()}
+                                        loading={respondingId === item.id ? true : undefined}
+                                        className="flex items-center justify-center h-10 w-10"
+                                        tabIndex={0}
+                                        aria-label="Send reply"
+                                      >
+                                        <Send className="h-5 w-5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setReplyToEdit(item.id)
+                                    setEditedReply(item.adminReply)
+                                    setShowEditReplyDialog(true)
+                                  }}
+                                  aria-label="Edit reply"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex justify-end">
-                            <div className="bg-green-100 rounded-2xl px-4 py-2 max-w-lg text-sm text-green-900 shadow-sm">
-                              <span className="font-medium">Admin:</span> {item.adminReply}
-                              <div className="text-xs text-muted-foreground mt-1 text-right">
-                                {item.repliedAt ? `Responded ${formatDistanceToNow(item.repliedAt, { addSuffix: true })}` : ""}
+                        </div>
+                        {!item.adminReply ? (
+                          <p className="text-base text-gray-800 mb-2 break-words">{item.message || "No feedback provided."}</p>
+                        ) : (
+                          <div className="flex flex-col gap-2 mt-2">
+                            <div className="flex">
+                              <div className="bg-gray-100 rounded-2xl px-4 py-2 max-w-lg text-sm text-gray-900 shadow-sm break-words">
+                                {item.message}
+                              </div>
+                            </div>
+                            <div className="flex justify-end">
+                              <div className="bg-green-100 rounded-2xl px-4 py-2 max-w-lg text-sm text-green-900 shadow-sm break-words">
+                                <span className="font-medium">Admin:</span> {item.adminReply}
+                                <div className="text-xs text-muted-foreground mt-1 text-right break-words">
+                                  {item.repliedAt ? `Responded ${formatDistanceToNow(item.repliedAt, { addSuffix: true })}` : ""}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-center items-center gap-4 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="transition-all duration-200"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <span className="text-sm font-medium">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="transition-all duration-200"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">No feedback yet</h3>
+                <p className="text-muted-foreground">Feedback will appear here</p>
               </div>
-              <div className="flex justify-center items-center gap-4 mt-6">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="transition-all duration-200"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
-                <span className="text-sm font-medium">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="transition-all duration-200"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No feedback yet</h3>
-              <p className="text-muted-foreground">Feedback will appear here</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Add Edit Reply Dialog */}
       <Dialog open={showEditReplyDialog} onOpenChange={setShowEditReplyDialog}>
-        <DialogContent>
+        <DialogContent className="w-full max-w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Reply</DialogTitle>
             <DialogDescription>

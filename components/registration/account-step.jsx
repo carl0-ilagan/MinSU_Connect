@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
@@ -11,7 +11,14 @@ export function AccountStep({ formData, updateFormData, errors }) {
   const [showPassword, setShowPassword] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [passwordFeedback, setPasswordFeedback] = useState("")
-  const [password, setPassword] = useState("") // Declare the password variable
+  const [password, setPassword] = useState("")
+  const [showCamera, setShowCamera] = useState(false)
+  const [loadingOcr, setLoadingOcr] = useState(false)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const [capturedImage, setCapturedImage] = useState(null)
+  const [idCheckLoading, setIdCheckLoading] = useState(false)
+  const [idCheckError, setIdCheckError] = useState("")
 
   const handleEmailChange = (e) => {
     updateFormData({ email: e.target.value })
@@ -25,7 +32,7 @@ export function AccountStep({ formData, updateFormData, errors }) {
     const passwordValue = e.target.value
     updateFormData({ password: passwordValue })
     calculatePasswordStrength(passwordValue)
-    setPassword(passwordValue) // Update the password state
+    setPassword(passwordValue)
   }
 
   const calculatePasswordStrength = (password) => {
@@ -84,6 +91,107 @@ export function AccountStep({ formData, updateFormData, errors }) {
     return "bg-green-600"
   }
 
+  // Function to check Firestore for ID number existence
+  async function checkIdNumberExists(idNumber) {
+    try {
+      setIdCheckLoading(true)
+      setIdCheckError("")
+      // Dynamically import Firestore to avoid SSR issues
+      const { db } = await import("@/lib/firebase")
+      const { collection, query, where, getDocs } = await import("firebase/firestore")
+      const usersRef = collection(db, "users")
+      const q = query(usersRef, where("idNumber", "==", idNumber))
+      const querySnapshot = await getDocs(q)
+      setIdCheckLoading(false)
+      return !querySnapshot.empty
+    } catch (error) {
+      setIdCheckLoading(false)
+      setIdCheckError("Error checking ID number. Please try again.")
+      return false
+    }
+  }
+
+  const handleOpenCamera = async () => {
+    setShowCamera(true)
+    setCapturedImage(null)
+    setIdCheckError("")
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+    }
+  }
+
+  const handleCapture = async () => {
+    if (!videoRef.current || !canvasRef.current) return
+    const context = canvasRef.current.getContext('2d')
+    context.drawImage(videoRef.current, 0, 0, 320, 240)
+    // Save image preview
+    const imageDataUrl = canvasRef.current.toDataURL('image/png')
+    setCapturedImage(imageDataUrl)
+    setShowCamera(false)
+    // Stop the camera
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+    }
+    // Automatically run OCR
+    setLoadingOcr(true)
+    setIdCheckError("")
+
+    // Wait for Tesseract.js to load
+    const waitForTesseract = () => {
+      return new Promise((resolve, reject) => {
+        if (window.Tesseract) {
+          resolve()
+        } else {
+          const timeout = setTimeout(() => {
+            reject(new Error('Tesseract.js failed to load within timeout.'));
+          }, 10000); // 10 seconds timeout
+          const interval = setInterval(() => {
+            if (window.Tesseract) {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              resolve();
+            }
+          }, 100);
+        }
+      });
+    };
+
+    try {
+      await waitForTesseract();
+
+      window.Tesseract.recognize(
+        imageDataUrl,
+        'eng',
+        { logger: m => console.log(m) }
+      ).then(async ({ data: { text } }) => {
+        // Support MBC, MMC, MCC (case-insensitive)
+        const match = text.match(/(MBC|MMC|MCC)\s?\d{4}-\d{4}/i)
+        if (match) {
+          const idNum = match[0].replace(/\s+/g, '').toUpperCase()
+          updateFormData({ idNumber: idNum })
+          // Check Firestore for ID existence
+          const exists = await checkIdNumberExists(idNum)
+          if (exists) {
+            setIdCheckError('This ID Number is already registered.')
+            updateFormData({ idNumber: '' })
+          }
+        } else {
+          setIdCheckError('ID number not detected. Please try again.\nTips: Make sure the ID is well-lit, flat, and the number is clear in the photo.')
+          updateFormData({ idNumber: '' })
+        }
+        setLoadingOcr(false)
+      })
+    } catch (error) {
+      console.error("Tesseract.js loading or recognition error:", error);
+      setIdCheckError(`Error processing image for OCR. Please try again. Details: ${error.message || error}`);
+      setLoadingOcr(false);
+    }
+  }
+
   return (
     <div className="space-y-4 animate-in slide-in-from-right">
       <div className="text-center mb-4">
@@ -97,18 +205,36 @@ export function AccountStep({ formData, updateFormData, errors }) {
             <User className="h-4 w-4 text-green-600" />
             ID Number
           </Label>
-          <Input
-            id="idNumber"
-            placeholder="MBC2022-0426"
-            value={formData.idNumber || ""}
-            onChange={handleIdNumberChange}
-            className={`rounded-lg transition-all focus:ring-2 focus:ring-green-500/20 font-manrope ${
-              errors.idNumber ? "border-red-500 focus:ring-red-200" : ""
-            }`}
-          />
-          {errors.idNumber && (
+          <div className="flex gap-2 items-center">
+            <Input
+              id="idNumber"
+              placeholder="MBC2022-0426"
+              value={formData.idNumber || ""}
+              readOnly
+              className={`rounded-lg transition-all focus:ring-2 focus:ring-green-500/20 font-manrope ${errors.idNumber ? "border-red-500 focus:ring-red-200" : ""}`}
+            />
+            <Button type="button" onClick={handleOpenCamera} disabled={showCamera || loadingOcr}>
+              {loadingOcr ? 'Processing...' : 'Capture ID'}
+            </Button>
+          </div>
+          {showCamera && (
+            <div className="mt-2 flex flex-col items-center">
+              <video ref={videoRef} width="320" height="240" autoPlay style={{ border: '1px solid #ccc', borderRadius: 8 }} />
+              <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }} />
+              <Button type="button" className="mt-2" onClick={handleCapture} disabled={loadingOcr}>
+                Take Photo
+              </Button>
+            </div>
+          )}
+          {capturedImage && (
+            <div className="mt-2 flex flex-col items-center">
+              <img src={capturedImage} alt="Captured ID" style={{ width: 200, borderRadius: 8, border: '1px solid #ccc' }} />
+              {idCheckLoading && <span className="text-xs text-gray-500 mt-1">Checking ID number...</span>}
+            </div>
+          )}
+          {(idCheckError || errors.idNumber) && (
             <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-manrope">
-              <XCircle className="h-3 w-3" /> {errors.idNumber}
+              <XCircle className="h-3 w-3" /> {idCheckError || errors.idNumber}
             </p>
           )}
           <p className="text-xs text-muted-foreground font-manrope">

@@ -50,13 +50,12 @@ export function AdminSidebar({ collapsed, setCollapsed }) {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true)
-      localStorage.removeItem("adminAuth")
-      sessionStorage.removeItem("adminAuth")
-      toast({
-        title: "Logged out",
-        description: "You have been logged out of the admin panel",
-      })
-      router.push("/welcome")
+    localStorage.removeItem("adminAuth")
+    toast({
+      title: "Logged out",
+      description: "You have been logged out of the admin panel",
+    })
+    router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)
       toast({
@@ -140,8 +139,13 @@ export function AdminSidebar({ collapsed, setCollapsed }) {
         >
           <div className="flex h-16 items-center justify-between px-4 border-b">
             <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-lg" />
-              {!collapsed && <span className="text-lg font-semibold">Admin Panel</span>}
+              <Image src="/MINSU.png" alt="Mindoro State University" width={32} height={32} className="rounded-full" />
+              {!collapsed && (
+                <span className="font-bold text-xl">
+                  <span className="text-yellow-500">MINSU</span>
+                  <span className="text-green-600">Connect</span>
+                </span>
+              )}
             </Link>
             {isMobile && (
               <Button variant="ghost" size="icon" onClick={toggleMobileSidebar}>

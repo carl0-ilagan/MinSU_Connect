@@ -54,7 +54,7 @@ const StatsModal = ({ post, isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-full max-w-full sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Post Statistics</DialogTitle>
           <DialogDescription>Detailed view of reactions and comments</DialogDescription>
@@ -124,14 +124,12 @@ const StatsModal = ({ post, isOpen, onClose }) => {
 
 export default function PostModerationPage() {
   const [posts, setPosts] = useState({
-    all: [],
     pending: [],
     approved: [],
     declined: [],
     reviewed: [],
   })
   const [allPosts, setAllPosts] = useState({
-    all: [],
     pending: [],
     approved: [],
     declined: [],
@@ -143,12 +141,14 @@ export default function PostModerationPage() {
   const [showDeclineDialog, setShowDeclineDialog] = useState(false)
   const [declineReason, setDeclineReason] = useState("")
   const [processingPost, setProcessingPost] = useState(null)
-  const [selectedStatus, setSelectedStatus] = useState("pending")
+  const [activeTab, setActiveTab] = useState("pending")
   const { toast } = useToast()
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [postsPerPage] = useState(5)
+
+  const [selectedStatus, setSelectedStatus] = useState("all")
 
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [statsPost, setStatsPost] = useState(null)
@@ -166,7 +166,7 @@ export default function PostModerationPage() {
   useEffect(() => {
     // Update paginated posts when all posts or page changes
     updatePaginatedPosts()
-  }, [allPosts, currentPage, selectedStatus, searchQuery])
+  }, [allPosts, currentPage, activeTab, searchQuery])
 
   // Set up real-time listeners for posts
   const setupPostsListeners = () => {
@@ -200,16 +200,12 @@ export default function PostModerationPage() {
 
     unsubscribes.push(allUnsubscribe)
 
-    // Reviewed posts listener (approved + declined)
-    const reviewedRef = collection(db, "posts")
-    const reviewedQuery = query(
-      reviewedRef,
-      where("status", "in", ["approved", "declined"]),
-      orderBy("createdAt", "desc")
-    )
+    // Pending posts listener
+    const pendingRef = collection(db, "posts")
+    const pendingQuery = query(pendingRef, where("status", "==", "pending"), orderBy("createdAt", "desc"))
 
-    const reviewedUnsubscribe = onSnapshot(reviewedQuery, (snapshot) => {
-      const reviewedPosts = snapshot.docs.map((doc) => {
+    const pendingUnsubscribe = onSnapshot(pendingQuery, (snapshot) => {
+      const pendingPosts = snapshot.docs.map((doc) => {
         const data = doc.data()
         return {
           id: doc.id,
@@ -229,40 +225,83 @@ export default function PostModerationPage() {
         }
       })
 
-      setAllPosts((prev) => ({ ...prev, reviewed: reviewedPosts }))
+      setAllPosts((prev) => ({ ...prev, pending: pendingPosts }))
+      setIsLoading(false)
     })
 
-    unsubscribes.push(reviewedUnsubscribe)
+    unsubscribes.push(pendingUnsubscribe)
+
+    // Approved posts listener
+    const approvedRef = collection(db, "posts")
+    const approvedQuery = query(approvedRef, where("status", "==", "approved"), orderBy("createdAt", "desc"))
+
+    const approvedUnsubscribe = onSnapshot(approvedQuery, (snapshot) => {
+      const approvedPosts = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          user: {
+            id: data.userId,
+            name: data.userName || "Unknown User",
+            avatar: data.userAvatar || data.profileImage || data.photoURL || "/diverse-woman-portrait.png",
+          },
+          content: data.content,
+          image: data.image,
+          timestamp: data.createdAt?.toDate() || new Date(),
+          status: data.status,
+          declineReason: data.feedback,
+          likes: data.likes || 0,
+          reactions: data.reactions || {},
+          commentList: data.commentList || [],
+        }
+      })
+
+      setAllPosts((prev) => ({ ...prev, approved: approvedPosts }))
+    })
+
+    unsubscribes.push(approvedUnsubscribe)
+
+    // Declined posts listener
+    const declinedRef = collection(db, "posts")
+    const declinedQuery = query(declinedRef, where("status", "==", "declined"), orderBy("createdAt", "desc"))
+
+    const declinedUnsubscribe = onSnapshot(declinedQuery, (snapshot) => {
+      const declinedPosts = snapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          user: {
+            id: data.userId,
+            name: data.userName || "Unknown User",
+            avatar: data.userAvatar || data.profileImage || data.photoURL || "/diverse-woman-portrait.png",
+          },
+          content: data.content,
+          image: data.image,
+          timestamp: data.createdAt?.toDate() || new Date(),
+          status: data.status,
+          declineReason: data.feedback,
+          likes: data.likes || 0,
+          reactions: data.reactions || {},
+          commentList: data.commentList || [],
+        }
+      })
+
+      setAllPosts((prev) => ({ ...prev, declined: declinedPosts }))
+    })
+
+    unsubscribes.push(declinedUnsubscribe)
 
     return unsubscribes
   }
 
   // Update paginated posts
   const updatePaginatedPosts = () => {
-    let statusPosts = []
-    
-    if (selectedStatus === "all") {
-      statusPosts = allPosts.all || []
-    } else if (selectedStatus === "reviewed") {
-      statusPosts = allPosts.reviewed || []
-    } else {
-      statusPosts = allPosts[selectedStatus] || []
-    }
-    
     // Filter posts based on search query
-    const filteredPosts = statusPosts.filter(
+    const filteredPosts = getFilteredPostsByStatus().filter(
       (post) =>
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.user.name.toLowerCase().includes(searchQuery.toLowerCase())
+        post.user.name.toLowerCase().includes(searchQuery.toLowerCase()),
     )
-
-    // Calculate total pages
-    const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
-    
-    // Ensure current page is valid
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages)
-    }
 
     // Apply pagination
     const startIndex = (currentPage - 1) * postsPerPage
@@ -287,13 +326,12 @@ export default function PostModerationPage() {
   }
 
   const handleNextPage = () => {
-    const statusPosts = allPosts[selectedStatus] || []
-    const filteredPosts = statusPosts.filter(
+    const totalFiltered = allPosts[activeTab].filter(
       (post) =>
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.user.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    const totalPages = Math.ceil(filteredPosts.length / postsPerPage)
+        post.user.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    ).length
+    const totalPages = Math.ceil(totalFiltered / postsPerPage)
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1)
     }
@@ -309,8 +347,6 @@ export default function PostModerationPage() {
   const getFilteredPostsByStatus = () => {
     if (selectedStatus === "all") {
       return allPosts.all || []
-    } else if (selectedStatus === "reviewed") {
-      return allPosts.reviewed || []
     }
     return allPosts[selectedStatus] || []
   }
@@ -430,205 +466,197 @@ export default function PostModerationPage() {
         icon={<FileText className="h-6 w-6 text-white" />}
       />
 
-      <Card className="shadow-md border-0 rounded-xl overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl font-bold">Content Moderation</CardTitle>
-              <CardDescription>
-                {isLoading ? "Loading..." : `${posts[selectedStatus]?.length || 0} posts shown (${getFilteredPostsByStatus().length} total)`}
-              </CardDescription>
-            </div>
-            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto items-stretch md:items-center">
-              <Select 
-                value={selectedStatus} 
-                onValueChange={(value) => { 
-                  setSelectedStatus(value)
-                  setCurrentPage(1) // Reset to first page when changing status
-                  setSearchQuery("") // Reset search when changing status
-                }}
-              >
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Posts ({allPosts.all.length})</SelectItem>
-                  <SelectItem value="pending">Pending ({allPosts.pending.length})</SelectItem>
-                  <SelectItem value="approved">Approved ({allPosts.approved.length})</SelectItem>
-                  <SelectItem value="declined">Declined ({allPosts.declined.length})</SelectItem>
-                  <SelectItem value="reviewed">Reviewed ({allPosts.reviewed.length})</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search posts..."
-                  value={searchQuery}
-                  onChange={handleSearch}
-                  onKeyDown={(e) => e.key === "Enter" && performSearch()}
-                  className="pl-10 bg-muted/50 border rounded-l-full focus:ring-2 focus:ring-primary/20"
-                />
+      <div className="max-w-full mx-auto py-6 w-full px-2 sm:px-4 overflow-x-auto">
+        <Card className="shadow-md border-0 rounded-xl overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl font-bold">Content Moderation</CardTitle>
+                <CardDescription>
+                  {isLoading ? "Loading..." : `${posts[selectedStatus].length} posts shown (${getFilteredPostsByStatus().length} total)`}
+                </CardDescription>
               </div>
-              <Button onClick={performSearch} className="rounded-r-full">
-                Search
-              </Button>
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto items-stretch md:items-center">
+                <Select value={selectedStatus} onValueChange={(value) => { setSelectedStatus(value); setCurrentPage(1) }}>
+                  <SelectTrigger className="w-full md:w-48">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Posts ({allPosts.all?.length || 0})</SelectItem>
+                    <SelectItem value="pending">Pending ({allPosts.pending.length})</SelectItem>
+                    <SelectItem value="approved">Approved ({allPosts.approved.length})</SelectItem>
+                    <SelectItem value="declined">Declined ({allPosts.declined.length})</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search posts..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    onKeyDown={(e) => e.key === "Enter" && performSearch()}
+                    className="pl-10 bg-muted/50 border rounded-l-full focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <Button onClick={performSearch} className="rounded-r-full">
+                  Search
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <PostModerationSkeleton key={i} />
-              ))}
-            </div>
-          ) : posts[selectedStatus]?.length > 0 ? (
-            <div className="space-y-4">
-              {posts[selectedStatus].map((post) => (
-                <div
-                  key={post.id}
-                  className="flex flex-col p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <Avatar className="h-10 w-10 border-2 border-primary/10">
-                      <AvatarImage src={post.user.avatar || "/placeholder.svg"} alt={post.user.name} />
-                      <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-medium">{post.user.name}</h3>
-                      <div className="flex items-center">
-                        <Badge variant="outline" className={`text-xs border-blue-200 ${post.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" : post.status === "approved" ? "bg-green-50 text-green-700 border-green-200" : post.status === "declined" ? "bg-red-50 text-red-700 border-red-200" : post.status === "reviewed" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-blue-50 text-blue-700"}`}>
-                          {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          Posted {formatDistanceToNow(post.timestamp, { addSuffix: true })}
-                        </span>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <PostModerationSkeleton key={i} />
+                ))}
+              </div>
+            ) : posts[selectedStatus].length > 0 ? (
+              <div className="space-y-4">
+                {posts[selectedStatus].map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex flex-col p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <Avatar className="h-10 w-10 border-2 border-primary/10">
+                        <AvatarImage src={post.user.avatar || "/placeholder.svg"} alt={post.user.name} />
+                        <AvatarFallback>{post.user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{post.user.name}</h3>
+                        <div className="flex items-center">
+                          <Badge variant="outline" className={`text-xs border-blue-200 ${post.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" : post.status === "approved" ? "bg-green-50 text-green-700 border-green-200" : post.status === "declined" ? "bg-red-50 text-red-700 border-red-200" : post.status === "reviewed" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-blue-50 text-blue-700"}`}>
+                            {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            Posted {formatDistanceToNow(post.timestamp, { addSuffix: true })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm mb-3 whitespace-pre-wrap break-words">{post.content}</p>
+                    {post.image && (
+                      <div className="relative rounded-lg overflow-hidden mb-3 max-h-[200px]">
+                        <Image
+                          src={post.image || "/placeholder.svg"}
+                          alt="Post image"
+                          width={600}
+                          height={400}
+                          className="w-full object-cover"
+                          onError={(e) => {
+                            console.error("Error loading post image:", e)
+                            e.target.src = "/placeholder.svg"
+                          }}
+                        />
+                      </div>
+                    )}
+                    {post.declineReason && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+                        <p className="text-sm font-medium text-red-700">Reason for declining:</p>
+                        <p className="text-sm text-red-600">{post.declineReason}</p>
+                      </div>
+                    )}
+                    {post.status === "pending" && (
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => handleApprovePost(post.id)}
+                          disabled={processingPost === post.id}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          {processingPost === post.id ? "Approving..." : "Approve"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full"
+                          onClick={() => handleDeclineClick(post)}
+                          disabled={processingPost === post.id}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="font-medium">Likes:</span> {post.likes || 0}
+                        {post.reactions && Object.keys(post.reactions).length > 0 && (
+                          <span className="text-muted-foreground">
+                            ({Object.entries(
+                              Object.values(post.reactions).reduce((acc, type) => {
+                                acc[type] = (acc[type] || 0) + 1;
+                                return acc;
+                              }, {})
+                            ).map(([type, count]) => `${getReactionEmoji(type)} ${count}`).join(", ")})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">Comments:</span>
+                        <span>{post.commentList?.length || 0}</span>
+                        <Button 
+                          size="xs" 
+                          variant="outline" 
+                          className="ml-2 px-2 py-1 rounded-full text-xs" 
+                          onClick={() => { 
+                            setStatsPost(post); 
+                            setShowStatsModal(true); 
+                          }}
+                        >
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm mb-3">{post.content}</p>
-                  {post.image && (
-                    <div className="relative rounded-lg overflow-hidden mb-3 max-h-[200px]">
-                      <Image
-                        src={post.image || "/placeholder.svg"}
-                        alt="Post image"
-                        width={600}
-                        height={400}
-                        className="w-full object-cover"
-                        onError={(e) => {
-                          console.error("Error loading post image:", e)
-                          e.target.src = "/placeholder.svg"
-                        }}
-                      />
-                    </div>
-                  )}
-                  {post.declineReason && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
-                      <p className="text-sm font-medium text-red-700">Reason for declining:</p>
-                      <p className="text-sm text-red-600">{post.declineReason}</p>
-                    </div>
-                  )}
-                  {post.status === "pending" && (
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => handleApprovePost(post.id)}
-                        disabled={processingPost === post.id}
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        {processingPost === post.id ? "Approving..." : "Approve"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={() => handleDeclineClick(post)}
-                        disabled={processingPost === post.id}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Decline
-                      </Button>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-2 mt-2">
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="font-medium">Likes:</span> {post.likes || 0}
-                      {post.reactions && Object.keys(post.reactions).length > 0 && (
-                        <span className="text-muted-foreground">
-                          ({Object.entries(
-                            Object.values(post.reactions).reduce((acc, type) => {
-                              acc[type] = (acc[type] || 0) + 1;
-                              return acc;
-                            }, {})
-                          ).map(([type, count]) => `${getReactionEmoji(type)} ${count}`).join(", ")})
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">Comments:</span>
-                      <span>{post.commentList?.length || 0}</span>
-                      <Button 
-                        size="xs" 
-                        variant="outline" 
-                        className="ml-2 px-2 py-1 rounded-full text-xs" 
-                        onClick={() => { 
-                          setStatsPost(post); 
-                          setShowStatsModal(true); 
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </div>
+                ))}
+                {/* Pagination Controls */}
+                {getFilteredPostsByStatus().length > postsPerPage && (
+                  <div className="flex justify-center items-center gap-4 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className="transition-all duration-200"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Previous
+                    </Button>
+                    <span className="text-sm font-medium">
+                      Page {currentPage} of {Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
+                      className="transition-all duration-200"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
                   </div>
-                </div>
-              ))}
-              {/* Pagination Controls */}
-              {getFilteredPostsByStatus().length > postsPerPage && (
-                <div className="flex justify-center items-center gap-4 mt-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                    className="transition-all duration-200"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Previous
-                  </Button>
-                  <span className="text-sm font-medium">
-                    Page {currentPage} of {Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleNextPage}
-                    disabled={currentPage >= Math.ceil(getFilteredPostsByStatus().length / postsPerPage)}
-                    className="transition-all duration-200"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No posts found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery ? "No posts match your search criteria" : `No ${selectedStatus} posts available`}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">No posts found</h3>
+                <p className="text-muted-foreground">Posts will appear here</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Post Detail Dialog */}
       {selectedPost && (
         <Dialog open={!!selectedPost && !showDeclineDialog} onOpenChange={() => setSelectedPost(null)}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="w-full max-w-full sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Post Details</DialogTitle>
               <DialogDescription>Review post content before moderation</DialogDescription>
@@ -693,7 +721,7 @@ export default function PostModerationPage() {
 
       {/* Decline Dialog */}
       <Dialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-full max-w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Decline Post</DialogTitle>
             <DialogDescription>Provide a reason for declining this post</DialogDescription>
