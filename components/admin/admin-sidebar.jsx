@@ -50,12 +50,13 @@ export function AdminSidebar({ collapsed, setCollapsed }) {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true)
-    localStorage.removeItem("adminAuth")
-    toast({
-      title: "Logged out",
-      description: "You have been logged out of the admin panel",
-    })
-    router.push("/login")
+      localStorage.removeItem("adminAuth")
+      sessionStorage.removeItem("adminAuth")
+      toast({
+        title: "Logged out",
+        description: "You have been logged out of the admin panel",
+      })
+      router.push("/welcome")
     } catch (error) {
       console.error("Logout error:", error)
       toast({
