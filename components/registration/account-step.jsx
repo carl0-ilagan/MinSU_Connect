@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
@@ -19,6 +19,8 @@ export function AccountStep({ formData, updateFormData, errors }) {
   const [capturedImage, setCapturedImage] = useState(null)
   const [idCheckLoading, setIdCheckLoading] = useState(false)
   const [idCheckError, setIdCheckError] = useState("")
+  const [scanning, setScanning] = useState(false)
+  const scanIntervalRef = useRef(null)
 
   const handleEmailChange = (e) => {
     updateFormData({ email: e.target.value })
@@ -111,6 +113,85 @@ export function AccountStep({ formData, updateFormData, errors }) {
     }
   }
 
+  // Stop scanning and camera
+  const stopScanning = () => {
+    setShowCamera(false)
+    setScanning(false)
+    setLoadingOcr(false)
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current)
+      scanIntervalRef.current = null
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+    }
+  }
+
+  // Automatic scanning function
+  const scanFrame = async () => {
+    if (!videoRef.current || !canvasRef.current) return
+    const context = canvasRef.current.getContext('2d')
+    context.drawImage(videoRef.current, 0, 0, 320, 240)
+    const imageDataUrl = canvasRef.current.toDataURL('image/png')
+    setLoadingOcr(true)
+    setIdCheckError("")
+    try {
+      await new Promise((resolve, reject) => {
+        if (window.Tesseract) resolve()
+        else {
+          const timeout = setTimeout(() => reject(new Error('Tesseract.js failed to load within timeout.')), 10000)
+          const interval = setInterval(() => {
+            if (window.Tesseract) {
+              clearTimeout(timeout)
+              clearInterval(interval)
+              resolve()
+            }
+          }, 100)
+        }
+      })
+      window.Tesseract.recognize(
+        imageDataUrl,
+        'eng',
+        { logger: m => console.log(m) }
+      ).then(async ({ data: { text } }) => {
+        console.log('Raw OCR output:', text)
+        const patterns = [
+          /(MBC|MMC|MCC)[\s\-\.]?\d{4}[\s\-\.]?\d{4,5}/i,
+          /(M8C|M8C|MCC)[\s\-\.]?\d{4}[\s\-\.]?\d{4,5}/i
+        ]
+        let idNum = ''
+        let match = null
+        for (const pattern of patterns) {
+          match = text.match(pattern)
+          if (match) {
+            idNum = match[0].replace(/\s+/g, '').replace(/\./g, '-').replace(/-/g, '-').toUpperCase()
+            idNum = idNum.replace(/(MBC|MMC|MCC)(\d{4})[-]?(\d{4,5})/, (match, prefix, year, num) => {
+              const correctedNum = num.replace(/8/g, '5')
+              return `${prefix}${year}-${correctedNum}`
+            })
+            break
+          }
+        }
+        if (idNum) {
+          setCapturedImage(imageDataUrl)
+          updateFormData({ idNumber: idNum })
+          const exists = await checkIdNumberExists(idNum)
+          if (exists) {
+            setIdCheckError('This ID Number is already registered.')
+            updateFormData({ idNumber: '' })
+          }
+          stopScanning()
+        } else {
+          setIdCheckError('ID number not detected. OCR output: ' + text + '\nTips: Make sure the ID is well-lit, flat, and the number is clear in the photo.')
+        }
+        setLoadingOcr(false)
+      })
+    } catch (error) {
+      setIdCheckError(`Error processing image for OCR. Please try again. Details: ${error.message || error}`)
+      setLoadingOcr(false)
+    }
+  }
+
   const handleOpenCamera = async () => {
     setShowCamera(true)
     setCapturedImage(null)
@@ -121,76 +202,18 @@ export function AccountStep({ formData, updateFormData, errors }) {
         videoRef.current.srcObject = stream
         videoRef.current.play()
       }
+      setScanning(true)
+      // Start automatic scanning every 1.5 seconds
+      scanIntervalRef.current = setInterval(scanFrame, 1500)
     }
   }
 
-  const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return
-    const context = canvasRef.current.getContext('2d')
-    context.drawImage(videoRef.current, 0, 0, 320, 240)
-    // Save image preview
-    const imageDataUrl = canvasRef.current.toDataURL('image/png')
-    setCapturedImage(imageDataUrl)
-    setShowCamera(false)
-    // Stop the camera
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      stopScanning()
     }
-    // Automatically run OCR
-    setLoadingOcr(true)
-    setIdCheckError("")
-
-    // Wait for Tesseract.js to load
-    const waitForTesseract = () => {
-      return new Promise((resolve, reject) => {
-        if (window.Tesseract) {
-          resolve()
-        } else {
-          const timeout = setTimeout(() => {
-            reject(new Error('Tesseract.js failed to load within timeout.'));
-          }, 10000); // 10 seconds timeout
-          const interval = setInterval(() => {
-            if (window.Tesseract) {
-              clearTimeout(timeout);
-              clearInterval(interval);
-              resolve();
-            }
-          }, 100);
-        }
-      });
-    };
-
-    try {
-      await waitForTesseract();
-
-      window.Tesseract.recognize(
-        imageDataUrl,
-        'eng',
-        { logger: m => console.log(m) }
-      ).then(async ({ data: { text } }) => {
-        // Support MBC, MMC, MCC (case-insensitive)
-        const match = text.match(/(MBC|MMC|MCC)\s?\d{4}-\d{4}/i)
-        if (match) {
-          const idNum = match[0].replace(/\s+/g, '').toUpperCase()
-          updateFormData({ idNumber: idNum })
-          // Check Firestore for ID existence
-          const exists = await checkIdNumberExists(idNum)
-          if (exists) {
-            setIdCheckError('This ID Number is already registered.')
-            updateFormData({ idNumber: '' })
-          }
-        } else {
-          setIdCheckError('ID number not detected. Please try again.\nTips: Make sure the ID is well-lit, flat, and the number is clear in the photo.')
-          updateFormData({ idNumber: '' })
-        }
-        setLoadingOcr(false)
-      })
-    } catch (error) {
-      console.error("Tesseract.js loading or recognition error:", error);
-      setIdCheckError(`Error processing image for OCR. Please try again. Details: ${error.message || error}`);
-      setLoadingOcr(false);
-    }
-  }
+  }, [])
 
   return (
     <div className="space-y-4 animate-in slide-in-from-right">
@@ -221,9 +244,11 @@ export function AccountStep({ formData, updateFormData, errors }) {
             <div className="mt-2 flex flex-col items-center">
               <video ref={videoRef} width="320" height="240" autoPlay style={{ border: '1px solid #ccc', borderRadius: 8 }} />
               <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }} />
-              <Button type="button" className="mt-2" onClick={handleCapture} disabled={loadingOcr}>
-                Take Photo
-              </Button>
+              {scanning && (
+                <Button type="button" className="mt-2" onClick={stopScanning} disabled={loadingOcr}>
+                  Stop Scanning
+                </Button>
+              )}
             </div>
           )}
           {capturedImage && (
@@ -365,3 +390,4 @@ export function AccountStep({ formData, updateFormData, errors }) {
     </div>
   )
 }
+
